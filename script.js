@@ -14,6 +14,7 @@ const SELECTED_PLAN_KEY = "unpaz_selected_plan";
 const MILESTONES_HIDDEN_PREFIX = "unpaz_milestones_hidden:";
 const THEME_KEY = "unpaz_theme";
 const PROGRESS_SCHEMA_VERSION = 2;
+const ONBOARDING_DISMISSED_KEY = "unpaz_onboarding_dismissed";
 const STATE_LABELS = ["Pendiente", "Regular", "Aprobada"];
 const STATE_CLASSES = ["", "state-1", "state-2"];
 const EDGE_COLORS = [
@@ -23,12 +24,6 @@ const EDGE_COLORS = [
 const FALLBACK_MATERIAS = [
   { id: "6001", nombre: "Análisis Matemático I", cuatrimestre: 1, correlativas: [] },
   { id: "6006", nombre: "Análisis Matemático II", cuatrimestre: 2, correlativas: ["6001"] }
-];
-const BULK_ACTIONS = [
-  { action: "regular", label: "Regular", targetState: 1 },
-  { action: "approved", label: "Aprobada", targetState: 2 },
-  { action: "pending", label: "Pendiente", targetState: 0 },
-  { action: "cycle", label: "Ciclo", targetState: null }
 ];
 const Core = window.UnpazCore;
 
@@ -43,8 +38,8 @@ let DEPENDENTS = {};
 let milestoneStateByKey = {};
 let milestonesPanelHidden = false;
 let careerFabOpen = false;
-let activeSemesterMenu = null;
 let blockedHighlightTimer = null;
+let toolsMenuOpen = false;
 
 /** @type {Record<string, 0|1|2>} */
 let progress = {};
@@ -109,11 +104,42 @@ function setCareerTitle(name) {
     careerName.textContent = text;
     careerName.title = text;
   }
+
+  const heroContainer = document.getElementById("career-hero");
+  if (heroContainer) {
+    const total = MATERIAS.length;
+    heroContainer.innerHTML = "";
+
+    const box = document.createElement("div");
+    box.className = "career-hero-box";
+
+    const title = document.createElement("h2");
+    title.className = "career-hero-title";
+    title.textContent = name || "Carrera";
+    box.appendChild(title);
+
+    const meta = document.createElement("p");
+    meta.className = "career-hero-meta";
+    meta.textContent = total > 0 ? `Plan cargado (${total} materias)` : "Plan sin materias cargadas";
+    box.appendChild(meta);
+
+    heroContainer.appendChild(box);
+  }
 }
 
 function setSubtitle(message) {
   const subtitle = document.querySelector(".subtitle");
   if (subtitle) subtitle.textContent = message;
+}
+
+function configureAuthorFooter() {
+  const link = document.getElementById("author-link");
+  if (!link) return;
+
+  const authorName = String(document.body?.dataset.authorName || "Nahuel").trim() || "Autor";
+  const authorGithub = String(document.body?.dataset.authorGithub || "https://github.com/nahuel").trim();
+  link.textContent = authorName;
+  link.href = authorGithub || "https://github.com";
 }
 
 function getCareerSelectElements() {
@@ -152,6 +178,36 @@ function setCareerFabOpen(open) {
   careerFabOpen = nextOpen;
   panel.hidden = !nextOpen;
   button.setAttribute("aria-expanded", String(nextOpen));
+}
+
+function setToolsMenuOpen(open) {
+  const menu = document.getElementById("tools-menu");
+  const button = document.getElementById("btn-tools");
+  if (!menu || !button) return;
+
+  toolsMenuOpen = Boolean(open);
+  menu.hidden = !toolsMenuOpen;
+  button.setAttribute("aria-expanded", String(toolsMenuOpen));
+}
+
+function isOnboardingDismissed() {
+  return safeStorageGet(ONBOARDING_DISMISSED_KEY) === "1";
+}
+
+function setOnboardingDismissed(value) {
+  safeStorageSet(ONBOARDING_DISMISSED_KEY, value ? "1" : "0");
+}
+
+function showOnboardingGuide() {
+  const guide = document.getElementById("onboarding-guide");
+  if (!guide) return;
+  guide.hidden = false;
+}
+
+function hideOnboardingGuide(rememberDismiss = false) {
+  const guide = document.getElementById("onboarding-guide");
+  if (guide) guide.hidden = true;
+  if (rememberDismiss) setOnboardingDismissed(true);
 }
 
 function showToast(message) {
@@ -400,7 +456,6 @@ function renderSemesters() {
   const container = document.getElementById("semesters");
   if (!container) return;
 
-  activeSemesterMenu = null;
   container.innerHTML = "";
 
   const grouped = MATERIAS.reduce((acc, materia) => {
@@ -416,9 +471,6 @@ function renderSemesters() {
       const block = document.createElement("section");
       block.className = "semester-block";
 
-      const labelWrap = document.createElement("div");
-      labelWrap.className = "semester-label-wrap";
-
       const label = document.createElement("h2");
       label.className = "semester-label";
       label.textContent = `${cuatrimestre}° Cuatrimestre`;
@@ -426,21 +478,17 @@ function renderSemesters() {
       label.setAttribute("tabindex", "0");
       label.setAttribute(
         "aria-label",
-        `${cuatrimestre}° cuatrimestre. Abrir menú de acciones masivas.`
+        `${cuatrimestre}° cuatrimestre. Ciclo rápido de estados para todas sus materias.`
       );
-      label.title = "Acciones masivas del cuatrimestre";
-      label.addEventListener("click", (event) => {
-        event.stopPropagation();
-        toggleSemesterBulkMenu(cuatrimestre, labelWrap);
-      });
+      label.title = "Ciclo rápido: Pendiente -> Regular -> Aprobada -> Pendiente";
+      label.addEventListener("click", () => applySemesterCycleQuick(cuatrimestre));
       label.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          toggleSemesterBulkMenu(cuatrimestre, labelWrap);
+          applySemesterCycleQuick(cuatrimestre);
         }
       });
-      labelWrap.appendChild(label);
-      block.appendChild(labelWrap);
+      block.appendChild(label);
 
       const row = document.createElement("div");
       row.className = "subjects-row";
@@ -449,12 +497,6 @@ function renderSemesters() {
       block.appendChild(row);
       container.appendChild(block);
     });
-}
-
-function closeSemesterBulkMenu() {
-  if (!activeSemesterMenu) return;
-  activeSemesterMenu.remove();
-  activeSemesterMenu = null;
 }
 
 function highlightBlockedCards(ids) {
@@ -483,25 +525,17 @@ function highlightBlockedCards(ids) {
   }, 760);
 }
 
-function applySemesterBulkAction(cuatrimestre, action) {
-  const config = BULK_ACTIONS.find((item) => item.action === action);
-  if (!config) return;
-
-  const params = {
+function applySemesterCycleQuick(cuatrimestre) {
+  const result = Core.applySemesterCycleAction({
     cuatrimestre,
     progressMap: progress,
     materias: MATERIAS,
     materiasById: MATERIAS_BY_ID,
     dependents: DEPENDENTS
-  };
-  const result =
-    action === "cycle"
-      ? Core.applySemesterCycleAction(params)
-      : Core.applySemesterTargetAction({ ...params, targetState: config.targetState });
+  });
 
   if (result.changedIds.length === 0) {
-    const targetState = action === "cycle" ? result.targetState : config.targetState;
-    showToast(`Cuatrimestre ${cuatrimestre}: no se pudo avanzar a ${STATE_LABELS[targetState]}.`);
+    showToast(`Cuatrimestre ${cuatrimestre}: no se pudo avanzar a ${STATE_LABELS[result.targetState]}.`);
     highlightBlockedCards(result.blocked.map((item) => item.id));
     return;
   }
@@ -517,52 +551,17 @@ function applySemesterBulkAction(cuatrimestre, action) {
   const blockedIds = result.blocked.map((item) => item.id);
   highlightBlockedCards(blockedIds);
 
-  const targetState = action === "cycle" ? result.targetState : config.targetState;
   if (blockedIds.length > 0) {
     showToast(
       `Cuatrimestre ${cuatrimestre}: ${result.changedIds.length}/${result.semesterIds.length} en ` +
-      `${STATE_LABELS[targetState]}. ${blockedIds.length} bloqueadas por correlativas/dependencias.`
+      `${STATE_LABELS[result.targetState]}. ${blockedIds.length} bloqueadas por correlativas/dependencias.`
     );
     return;
   }
 
   showToast(
-    `Cuatrimestre ${cuatrimestre}: ${result.changedIds.length}/${result.semesterIds.length} en ${STATE_LABELS[targetState]}.`
+    `Cuatrimestre ${cuatrimestre}: ${result.changedIds.length}/${result.semesterIds.length} en ${STATE_LABELS[result.targetState]}.`
   );
-}
-
-function toggleSemesterBulkMenu(cuatrimestre, anchorElement) {
-  const alreadyOpenForSameSemester =
-    activeSemesterMenu &&
-    activeSemesterMenu.dataset.cuatrimestre === String(cuatrimestre) &&
-    activeSemesterMenu.parentElement === anchorElement;
-
-  closeSemesterBulkMenu();
-  if (alreadyOpenForSameSemester) return;
-
-  const menu = document.createElement("div");
-  menu.className = "semester-bulk-menu";
-  menu.dataset.cuatrimestre = String(cuatrimestre);
-  menu.setAttribute("role", "menu");
-  menu.setAttribute("aria-label", `Acciones para ${cuatrimestre}° cuatrimestre`);
-
-  BULK_ACTIONS.forEach((item) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "semester-bulk-btn";
-    btn.dataset.action = item.action;
-    btn.textContent = item.label;
-    btn.setAttribute("role", "menuitem");
-    btn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      closeSemesterBulkMenu();
-      applySemesterBulkAction(cuatrimestre, item.action);
-    });
-    menu.appendChild(btn);
-  });
-
-  anchorElement.appendChild(menu);
-  activeSemesterMenu = menu;
 }
 
 function updateCard(id) {
@@ -680,7 +679,7 @@ function careerProgressInfo() {
 }
 
 function updateCareerProgress() {
-  const container = document.getElementById("career-progress");
+  const container = document.getElementById("career-progress-floating");
   if (!container) return;
 
   const { total, approved, percentage } = careerProgressInfo();
@@ -841,6 +840,7 @@ function resetProgress() {
 }
 
 function exportProgress() {
+  setToolsMenuOpen(false);
   const payload = {
     schemaVersion: PROGRESS_SCHEMA_VERSION,
     planSlug: ACTIVE_PLAN?.slug || "demo",
@@ -864,6 +864,7 @@ function exportProgress() {
 }
 
 async function importProgressFromFile(file) {
+  setToolsMenuOpen(false);
   if (!file) return;
 
   let parsed;
@@ -914,6 +915,20 @@ async function importProgressFromFile(file) {
   updateCareerProgress();
   updateMilestones();
   showToast(`Progreso importado: ${Object.keys(nextProgress).length} materias cargadas.`);
+}
+
+function printInLightMode() {
+  setToolsMenuOpen(false);
+  const previousTheme = document.body.dataset.theme === "dark" ? "dark" : "light";
+  setTheme("light");
+
+  const restoreTheme = () => {
+    setTheme(previousTheme);
+    window.removeEventListener("afterprint", restoreTheme);
+  };
+
+  window.addEventListener("afterprint", restoreTheme);
+  window.print();
 }
 
 function getBasePath(url) {
@@ -1138,7 +1153,7 @@ function bindUiEvents() {
     resizeTimer = setTimeout(() => {
       drawArrows();
       if (window.innerWidth > 768) setCareerFabOpen(false);
-      closeSemesterBulkMenu();
+      setToolsMenuOpen(false);
     }, 80);
   });
 
@@ -1152,15 +1167,28 @@ function bindUiEvents() {
   if (exportButton) exportButton.addEventListener("click", exportProgress);
 
   const importButton = document.getElementById("btn-import");
+  const printButton = document.getElementById("btn-print");
   const importInput = document.getElementById("input-import-progress");
+  if (printButton) printButton.addEventListener("click", printInLightMode);
   if (importButton && importInput) {
-    importButton.addEventListener("click", () => importInput.click());
+    importButton.addEventListener("click", () => {
+      setToolsMenuOpen(false);
+      importInput.click();
+    });
     importInput.addEventListener("change", async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) return;
       const file = target.files?.[0];
       await importProgressFromFile(file);
       target.value = "";
+    });
+  }
+
+  const toolsButton = document.getElementById("btn-tools");
+  if (toolsButton) {
+    toolsButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setToolsMenuOpen(!toolsMenuOpen);
     });
   }
 
@@ -1206,9 +1234,10 @@ function bindUiEvents() {
   document.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof Node)) return;
-
-    if (activeSemesterMenu && !activeSemesterMenu.contains(target)) {
-      closeSemesterBulkMenu();
+    const toolsMenu = document.getElementById("tools-menu");
+    const toolsBtn = document.getElementById("btn-tools");
+    if (toolsMenuOpen && toolsMenu && toolsBtn && !toolsMenu.contains(target) && !toolsBtn.contains(target)) {
+      setToolsMenuOpen(false);
     }
 
     if (careerFabOpen) {
@@ -1222,7 +1251,7 @@ function bindUiEvents() {
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    closeSemesterBulkMenu();
+    setToolsMenuOpen(false);
     setCareerFabOpen(false);
   });
 
@@ -1231,6 +1260,16 @@ function bindUiEvents() {
     floatingSelect.addEventListener("keydown", (event) => {
       if (event.key === "Escape") setCareerFabOpen(false);
     });
+  }
+
+  const onboardingOkButton = document.getElementById("btn-onboarding-ok");
+  if (onboardingOkButton) {
+    onboardingOkButton.addEventListener("click", () => hideOnboardingGuide(false));
+  }
+
+  const onboardingNeverButton = document.getElementById("btn-onboarding-never");
+  if (onboardingNeverButton) {
+    onboardingNeverButton.addEventListener("click", () => hideOnboardingGuide(true));
   }
 }
 
@@ -1241,6 +1280,8 @@ async function init() {
   }
 
   setTheme(resolvePreferredTheme());
+  configureAuthorFooter();
+  setToolsMenuOpen(false);
 
   const svg = document.getElementById("arrows-svg");
   if (svg) buildDefs(svg);
@@ -1255,6 +1296,10 @@ async function init() {
 
   populateCareerSelect(PLAN_CATALOG, selectedPlan?.slug);
   await activatePlan(selectedPlan, true);
+
+  if (!isOnboardingDismissed()) {
+    showOnboardingGuide();
+  }
 }
 
 init();

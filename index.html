@@ -8,14 +8,19 @@
     content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
   />
   <title>Mapa de Correlatividades – UNPAZ</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body data-catalog="data/planes/catalog.json" data-plan="data/planes/licenciatura-en-gestion-de-tecnologias-de-la-informacion.materias.json">
+<body
+  data-catalog="data/planes/catalog.json"
+  data-plan="data/planes/licenciatura-en-gestion-de-tecnologias-de-la-informacion.materias.json"
+  data-author-name="Nahuel"
+  data-author-github="https://github.com/nahuel"
+>
   <header>
     <div class="header-main">
       <div class="title-row">
         <h1>Mapa de Correlatividades</h1>
-        <p id="career-name" class="career-name"></p>
       </div>
       <p class="subtitle">Hacé clic en cada materia para registrar tu progreso</p>
     </div>
@@ -31,13 +36,20 @@
           <span class="legend-item approved">Aprobada</span>
         </div>
         <button id="btn-theme" type="button" title="Cambiar tema">Modo oscuro</button>
-        <button id="btn-export" type="button" title="Descargar progreso actual">Exportar</button>
-        <button id="btn-import" type="button" title="Importar progreso desde archivo">Importar</button>
+        <div class="tools-wrap">
+          <button id="btn-tools" type="button" title="Abrir herramientas" aria-controls="tools-menu" aria-expanded="false">Herramientas</button>
+          <div id="tools-menu" class="tools-menu" hidden>
+            <button id="btn-export" type="button" title="Descargar progreso actual">Exportar progreso</button>
+            <button id="btn-import" type="button" title="Importar progreso desde archivo">Importar progreso</button>
+            <button id="btn-print" type="button" title="Imprimir plan">Imprimir (modo claro)</button>
+          </div>
+        </div>
         <button id="btn-reset" title="Borrar todo el progreso guardado">Reiniciar progreso</button>
       </div>
     </div>
   </header>
-  <section id="career-progress" class="career-progress" aria-live="polite"></section>
+  <section id="career-hero" class="career-hero" aria-live="polite"></section>
+  <section id="career-progress-floating" class="career-progress-floating" aria-live="polite"></section>
 
   <main>
     <div id="diagram-container">
@@ -64,7 +76,20 @@
     <div class="career-fab-title">Cambiar carrera</div>
     <select id="career-select-floating" aria-label="Seleccionar carrera (flotante)"></select>
   </section>
+  <section id="onboarding-guide" class="onboarding-guide" aria-live="polite" hidden>
+    <div class="onboarding-title">Cómo usar el mapa</div>
+    <p>1 clic: <strong>Regular</strong>. 2 clics: <strong>Aprobada</strong>. 3 clics: <strong>Pendiente</strong>.</p>
+    <p>Podés tocar el título de cada cuatrimestre para aplicar el ciclo rápido a todas sus materias.</p>
+    <div class="onboarding-actions">
+      <button id="btn-onboarding-ok" type="button">Entendido</button>
+      <button id="btn-onboarding-never" type="button">No recordar de nuevo</button>
+    </div>
+  </section>
   <input id="input-import-progress" type="file" accept="application/json,.json" hidden />
+  <footer class="site-footer">
+    <span>Autor:</span>
+    <a id="author-link" href="https://github.com/nahuel" target="_blank" rel="noopener noreferrer">Nahuel</a>
+  </footer>
 
   <script src="core.js" defer></script>
   <script src="script.js" defer></script>

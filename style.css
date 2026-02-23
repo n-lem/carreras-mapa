@@ -223,8 +223,7 @@ body[data-theme="dark"] .career-picker select {
 .legend-item.approved { background: var(--color-approved-bg); border-color: var(--color-approved-border); color: var(--color-approved-text); }
 
 #btn-theme,
-#btn-export,
-#btn-import,
+#btn-tools,
 #btn-reset {
   border: none;
   padding: .5rem .95rem;
@@ -245,22 +244,12 @@ body[data-theme="dark"] .career-picker select {
   background: var(--btn-theme-bg-hover);
 }
 
-#btn-export,
-#btn-import {
+#btn-tools {
   background: rgba(148, 163, 184, .24);
   color: var(--header-text);
 }
 
-#btn-export:hover,
-#btn-import:hover {
-  background: rgba(148, 163, 184, .38);
-}
-
-#btn-export:disabled,
-#btn-import:disabled {
-  opacity: .6;
-  cursor: not-allowed;
-}
+#btn-tools:hover { background: rgba(148, 163, 184, .38); }
 
 #btn-reset {
   background: var(--btn-danger-bg);
@@ -269,12 +258,81 @@ body[data-theme="dark"] .career-picker select {
 
 #btn-reset:hover { background: var(--btn-danger-bg-hover); }
 
-/* ── Career progress ──────────────────────────────────────── */
-.career-progress {
+/* ── Header tools ─────────────────────────────────────────── */
+.tools-wrap {
+  position: relative;
+}
+
+.tools-menu {
+  position: absolute;
+  top: calc(100% + .4rem);
+  right: 0;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  padding: .35rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--milestone-border);
+  background: var(--milestone-bg);
+  box-shadow: var(--shadow);
+  z-index: 9800;
+}
+
+.tools-menu button {
+  border: 1px solid var(--milestone-border);
+  background: transparent;
+  color: var(--text);
+  border-radius: var(--radius);
+  font-size: .78rem;
+  font-weight: 700;
+  text-align: left;
+  padding: .42rem .52rem;
+  cursor: pointer;
+}
+
+.tools-menu button:hover { filter: brightness(.96); }
+
+.tools-menu[hidden] {
+  display: none !important;
+}
+
+/* ── Career hero/progress ─────────────────────────────────── */
+.career-hero {
   max-width: 960px;
   margin: .8rem auto 0;
   padding: 0 1rem;
   min-height: 4.4rem;
+}
+
+.career-hero-box {
+  border: 1px solid var(--milestone-border);
+  border-radius: var(--radius);
+  background: var(--milestone-bg);
+  color: var(--milestone-text);
+  padding: .75rem .85rem;
+  box-shadow: var(--shadow);
+}
+
+.career-hero-title {
+  font-size: clamp(1.18rem, 1.02rem + .6vw, 1.7rem);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.career-hero-meta {
+  margin-top: .25rem;
+  font-size: .82rem;
+  font-weight: 600;
+  opacity: .9;
+}
+
+.career-progress-floating {
+  position: fixed;
+  top: 5.4rem;
+  right: 1rem;
+  z-index: 9700;
+  width: min(340px, calc(100vw - 2rem));
 }
 
 .career-progress-box {
@@ -555,66 +613,6 @@ body[data-theme="dark"] .semester-label {
   background: rgba(2, 6, 23, .72);
 }
 
-.semester-label-wrap {
-  position: relative;
-  align-self: center;
-}
-
-.semester-bulk-menu {
-  position: absolute;
-  top: calc(100% + .45rem);
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: .35rem;
-  padding: .35rem;
-  border-radius: 999px;
-  border: 1px solid var(--milestone-border);
-  background: var(--milestone-bg);
-  box-shadow: var(--shadow);
-  z-index: 20;
-}
-
-.semester-bulk-btn {
-  border: 1px solid var(--milestone-border);
-  background: transparent;
-  color: var(--text);
-  border-radius: 999px;
-  font-size: .68rem;
-  font-weight: 700;
-  padding: .26rem .55rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.semester-bulk-btn:hover {
-  filter: brightness(.95);
-}
-
-.semester-bulk-btn[data-action="regular"] {
-  background: var(--color-regular-bg);
-  border-color: var(--color-regular-border);
-  color: var(--color-regular-text);
-}
-
-.semester-bulk-btn[data-action="approved"] {
-  background: var(--color-approved-bg);
-  border-color: var(--color-approved-border);
-  color: var(--color-approved-text);
-}
-
-.semester-bulk-btn[data-action="pending"] {
-  background: var(--color-pending-bg);
-  border-color: var(--color-pending-border);
-  color: var(--color-pending-text);
-}
-
-.semester-bulk-btn[data-action="cycle"] {
-  background: rgba(59, 130, 246, .15);
-  border-color: rgba(59, 130, 246, .45);
-  color: #1d4ed8;
-}
-
 .subject-card.bulk-blocked {
   animation: blocked-flash .7s ease;
 }
@@ -742,6 +740,76 @@ body[data-theme="dark"] .semester-label {
   opacity: 1;
 }
 
+/* ── Onboarding / footer ─────────────────────────────────── */
+.onboarding-guide {
+  position: fixed;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  width: min(520px, calc(100vw - 2rem));
+  background: var(--milestone-bg);
+  color: var(--milestone-text);
+  border: 1px solid var(--milestone-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: .7rem .8rem;
+  z-index: 9800;
+  animation: onboarding-in .35s ease;
+}
+
+@keyframes onboarding-in {
+  from { transform: translateX(-50%) translateY(14px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+.onboarding-title {
+  font-size: .88rem;
+  font-weight: 800;
+  margin-bottom: .32rem;
+}
+
+.onboarding-guide p {
+  font-size: .78rem;
+  line-height: 1.4;
+  margin-bottom: .3rem;
+}
+
+.onboarding-actions {
+  display: flex;
+  gap: .45rem;
+  margin-top: .35rem;
+}
+
+.onboarding-actions button {
+  border: 1px solid var(--milestone-border);
+  background: transparent;
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: .35rem .55rem;
+  font-size: .74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.onboarding-actions button:hover { filter: brightness(.96); }
+
+.site-footer {
+  margin: 1.8rem auto 1rem;
+  max-width: 960px;
+  padding: 0 1rem;
+  font-size: .78rem;
+  color: var(--semester-label);
+  display: flex;
+  gap: .35rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.site-footer a {
+  color: inherit;
+  font-weight: 700;
+}
+
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 1080px) {
   header {
@@ -772,16 +840,10 @@ body[data-theme="dark"] .semester-label {
     align-self: flex-start;
   }
 
-  .semester-label-wrap {
-    align-self: flex-start;
-  }
-
-  .semester-bulk-menu {
-    left: 0;
-    transform: none;
-    border-radius: var(--radius);
-    flex-wrap: wrap;
-    max-width: min(95vw, 520px);
+  .career-progress-floating {
+    top: auto;
+    bottom: 7.8rem;
+    right: 1rem;
   }
 }
 
@@ -794,10 +856,6 @@ body[data-theme="dark"] .semester-label {
   .title-row {
     flex-wrap: wrap;
     gap: .4rem .6rem;
-  }
-
-  .career-name {
-    width: 100%;
   }
 
   .subtitle {
@@ -813,11 +871,16 @@ body[data-theme="dark"] .semester-label {
   }
 
   #btn-theme,
-  #btn-export,
-  #btn-import,
+  #btn-tools,
   #btn-reset {
     flex: 1 1 calc(50% - .35rem);
     text-align: center;
+  }
+
+  .tools-menu {
+    right: auto;
+    left: 0;
+    min-width: min(92vw, 300px);
   }
 
   .milestone-floating {
@@ -849,8 +912,15 @@ body[data-theme="dark"] .semester-label {
     bottom: 3.45rem;
   }
 
-  .career-progress {
+  .career-hero {
     margin-top: .65rem;
+  }
+
+  .career-progress-floating {
+    bottom: 7.35rem;
+    left: .75rem;
+    right: .75rem;
+    width: auto;
   }
 
   #semesters {
@@ -874,6 +944,10 @@ body[data-theme="dark"] .semester-label {
     width: 100%;
     max-width: none;
   }
+
+  .onboarding-guide {
+    bottom: 4.6rem;
+  }
 }
 
 @media (max-width: 520px) {
@@ -884,8 +958,7 @@ body[data-theme="dark"] .semester-label {
   }
 
   #btn-theme,
-  #btn-export,
-  #btn-import,
+  #btn-tools,
   #btn-reset {
     flex-basis: 100%;
   }
@@ -898,6 +971,10 @@ body[data-theme="dark"] .semester-label {
   .career-fab {
     font-size: .74rem;
     padding: .45rem .75rem;
+  }
+
+  .onboarding-actions {
+    flex-direction: column;
   }
 }
 
@@ -930,5 +1007,50 @@ body[data-theme="dark"] .semester-label {
     flex-direction: column;
     align-items: flex-start;
     gap: .3rem;
+  }
+}
+
+/* ── Print ────────────────────────────────────────────────── */
+@media print {
+  :root,
+  body,
+  body[data-theme="dark"] {
+    --bg: #ffffff;
+    --text: #111827;
+    --semester-label: #334155;
+    --milestone-bg: #ffffff;
+    --milestone-border: #94a3b8;
+    --milestone-text: #1f2937;
+    --color-pending-bg: #e5e7eb;
+    --color-pending-border: #9ca3af;
+    --color-pending-text: #374151;
+    --color-regular-bg: #fef3c7;
+    --color-regular-border: #d97706;
+    --color-regular-text: #78350f;
+    --color-approved-bg: #dcfce7;
+    --color-approved-border: #16a34a;
+    --color-approved-text: #14532d;
+    --shadow: none;
+  }
+
+  header,
+  .milestone-floating,
+  .milestone-show-btn,
+  .career-fab,
+  .career-fab-panel,
+  .career-progress-floating,
+  .onboarding-guide,
+  #toast,
+  .site-footer {
+    display: none !important;
+  }
+
+  main {
+    padding: .6rem 0;
+  }
+
+  .career-hero {
+    margin: 0 0 .4rem 0;
+    padding: 0;
   }
 }
