@@ -1,3 +1,11 @@
 .venv/
 __pycache__/
 *.pyc
+
+# Input PDFs (local only)
+data/pdfs/*
+!data/pdfs/.gitkeep
+
+# Generated outputs (regenerable)
+data/planes/*.json
+!data/planes/.gitkeep
