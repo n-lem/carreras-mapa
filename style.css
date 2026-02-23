@@ -516,6 +516,19 @@ body[data-theme="dark"] .semester-block {
   align-self: center;
   padding: .3rem .7rem;
   background: rgba(226, 232, 240, .55);
+  cursor: pointer;
+  user-select: none;
+  transition: transform .15s ease, filter .15s ease;
+}
+
+.semester-label:hover {
+  filter: brightness(.96);
+  transform: translateY(-1px);
+}
+
+.semester-label:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 
 body[data-theme="dark"] .semester-label {
@@ -784,7 +797,7 @@ body[data-theme="dark"] .semester-label {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 360px) {
   .subjects-row {
     grid-template-columns: 1fr;
   }

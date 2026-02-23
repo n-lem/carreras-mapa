@@ -265,6 +265,23 @@ function canAdvanceTo(id, targetState) {
   return true;
 }
 
+function canAdvanceToWithSnapshot(id, targetState, snapshot) {
+  const materia = MATERIAS_BY_ID[id];
+  if (!materia) return false;
+
+  const getSnapshotState = (materiaId) => snapshot[materiaId] ?? 0;
+
+  if (targetState === 1) {
+    return materia.correlativas.every((cid) => getSnapshotState(cid) >= 1);
+  }
+
+  if (targetState === 2) {
+    return materia.correlativas.every((cid) => getSnapshotState(cid) === 2);
+  }
+
+  return true;
+}
+
 function normalizeProgressState() {
   let changed = false;
   let keepFixing = true;
@@ -456,6 +473,20 @@ function renderSemesters() {
       const label = document.createElement("h2");
       label.className = "semester-label";
       label.textContent = `${cuatrimestre}° Cuatrimestre`;
+      label.setAttribute("role", "button");
+      label.setAttribute("tabindex", "0");
+      label.setAttribute(
+        "aria-label",
+        `${cuatrimestre}° cuatrimestre. Completar materias automáticamente.`
+      );
+      label.title = "Completar materias de este cuatrimestre";
+      label.addEventListener("click", () => handleSemesterBulkClick(cuatrimestre));
+      label.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleSemesterBulkClick(cuatrimestre);
+        }
+      });
       block.appendChild(label);
 
       const row = document.createElement("div");
@@ -730,6 +761,57 @@ function handleCardClick(id) {
   drawArrows();
   updateCareerProgress();
   updateMilestones();
+}
+
+function handleSemesterBulkClick(cuatrimestre) {
+  const semesterMaterias = MATERIAS.filter((materia) => materia.cuatrimestre === cuatrimestre);
+  if (semesterMaterias.length === 0) return;
+
+  const snapshot = { ...progress };
+  const semesterIds = semesterMaterias.map((materia) => materia.id);
+  let keepUpdating = true;
+  let safety = 0;
+
+  // Resolve in multiple passes so dependencies within the same semester can unlock each other.
+  while (keepUpdating && safety < semesterIds.length * 4) {
+    keepUpdating = false;
+    safety += 1;
+
+    semesterIds.forEach((id) => {
+      const current = snapshot[id] ?? 0;
+      let next = current;
+
+      if (canAdvanceToWithSnapshot(id, 2, snapshot)) {
+        next = Math.max(next, 2);
+      } else if (canAdvanceToWithSnapshot(id, 1, snapshot)) {
+        next = Math.max(next, 1);
+      }
+
+      if (next !== current) {
+        snapshot[id] = next;
+        keepUpdating = true;
+      }
+    });
+  }
+
+  const changedIds = semesterIds.filter((id) => (snapshot[id] ?? 0) !== (progress[id] ?? 0));
+  if (changedIds.length === 0) {
+    showToast(`Cuatrimestre ${cuatrimestre}: no hubo cambios posibles.`);
+    return;
+  }
+
+  changedIds.forEach((id) => {
+    progress[id] = snapshot[id] ?? 0;
+  });
+
+  normalizeProgressState();
+  saveProgress();
+  renderSemesters();
+  drawArrows();
+  updateCareerProgress();
+  updateMilestones();
+
+  showToast(`Cuatrimestre ${cuatrimestre}: ${changedIds.length}/${semesterIds.length} materias actualizadas.`);
 }
 
 function resetProgress() {
