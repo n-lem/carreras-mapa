@@ -552,6 +552,45 @@ def write_catalog(output_dir: Path) -> Path:
     return catalog_path
 
 
+def prune_unreferenced_json(output_dir: Path, catalog_path: Path, verbose: bool = False) -> list[Path]:
+    """
+    Remove JSON files in output_dir that are not referenced by catalog.json.
+    Keeps:
+    - catalog.json
+    - <slug>.json / <slug>.materias.json included in catalog
+    """
+    try:
+        payload = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+    entries = payload if isinstance(payload, list) else payload.get("carreras", [])
+    if not isinstance(entries, list):
+        return []
+
+    keep_names: set[str] = {"catalog.json"}
+    for item in entries:
+        if not isinstance(item, dict):
+            continue
+        materias_name = str(item.get("materias", "")).strip()
+        metadata_name = str(item.get("metadata", "")).strip()
+        if materias_name:
+            keep_names.add(Path(materias_name).name)
+        if metadata_name:
+            keep_names.add(Path(metadata_name).name)
+
+    removed: list[Path] = []
+    for json_path in sorted(output_dir.glob("*.json")):
+        if json_path.name in keep_names:
+            continue
+        json_path.unlink(missing_ok=True)
+        removed.append(json_path)
+        if verbose:
+            print(f"[PRUNE] Removed stale file: {json_path.name}")
+
+    return removed
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Parse PDFs de planes de estudio y exportar JSON para la web."
@@ -580,6 +619,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--verbose",
         action="store_true",
         help="Imprime detalle de cada PDF procesado.",
+    )
+    parser.add_argument(
+        "--prune",
+        action="store_true",
+        help=(
+            "Elimina JSONs de salida no referenciados por catalog.json "
+            "(evita acumulación de archivos obsoletos)."
+        ),
     )
     return parser
 
@@ -614,8 +661,14 @@ def main() -> int:
         return 2
 
     catalog_path = write_catalog(output_dir)
+    pruned: list[Path] = []
+    if args.prune:
+        pruned = prune_unreferenced_json(output_dir, catalog_path, verbose=args.verbose)
+
     print(f"Procesados OK: {len(pdf_files)} PDF(s). Salida: {output_dir}")
     print(f"Catálogo actualizado: {catalog_path}")
+    if args.prune:
+        print(f"Limpieza de JSON obsoletos: {len(pruned)} archivo(s) eliminado(s).")
     return 0
 
 
