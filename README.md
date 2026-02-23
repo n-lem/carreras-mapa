@@ -6,8 +6,13 @@ Mapa de correlatividades para carreras UNPAZ.
 - Validación estricta de correlatividades (`Regular` y `Aprobada`).
 - Persistencia con `localStorage` versionada y migración automática.
 - Exportar/importar progreso por carrera (`JSON`).
-- Acciones masivas por cuatrimestre (`Regular`, `Aprobada`, `Pendiente`, `Ciclo`).
-- Resaltado visual de materias bloqueadas en acciones masivas.
+- Click en cuatrimestre con ciclo rápido de estados para todas sus materias.
+- Resaltado de camino de correlativas al pasar/focar una materia.
+- Panel flotante de progreso con:
+  - nombre de carrera
+  - contadores `Pendiente/Regular/Aprobada`
+  - acceso rápido a `Herramientas` y `Reiniciar progreso`
+- Modo impresión en claro.
 - Catálogo dinámico de carreras (`data/planes/catalog.json`).
 
 ## Flujo para agregar carreras desde PDF
@@ -26,6 +31,18 @@ python tools/pdf_to_plan_json.py --input "data/pdfs" --output "data/planes" --sp
 ```
 
 4. Levantar la web con Live Server o servidor estático.
+
+## Uso rápido de la UI
+
+- `1 clic` en materia: `Pendiente -> Regular`.
+- `2 clics`: `Regular -> Aprobada`.
+- `3 clics`: `Aprobada -> Pendiente` (si no rompe dependencias).
+- Click en el título del cuatrimestre: ciclo rápido sobre el bloque.
+- `Herramientas` (ícono engranaje en panel flotante):
+  - cambiar tema claro/oscuro
+  - exportar progreso
+  - importar progreso
+  - imprimir en modo claro
 
 ## Testing
 

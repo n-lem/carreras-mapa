@@ -1120,7 +1120,11 @@ body[data-theme="dark"] .semester-label {
   }
 
   #arrows-svg {
-    z-index: 6 !important;
+    z-index: 1 !important;
+  }
+
+  #semesters {
+    z-index: 2 !important;
   }
 
   .arrow-line,
@@ -1138,10 +1142,12 @@ body[data-theme="dark"] .semester-label {
   .semester-block {
     background: transparent !important;
     border-color: #cbd5e1 !important;
+    z-index: 2 !important;
   }
 
   .subject-card {
     box-shadow: none !important;
+    z-index: 3 !important;
   }
 
   .career-hero {
