@@ -749,22 +749,15 @@ body[data-theme="dark"] .semester-label {
   }
 
   .subjects-row {
-    display: flex;
-    flex-direction: column;
-    gap: .75rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: .7rem;
   }
 
   .subject-card {
-    width: min(100%, 380px);
-    max-width: 100%;
-  }
-
-  .subjects-row .subject-card:nth-child(odd) {
-    align-self: flex-start;
-  }
-
-  .subjects-row .subject-card:nth-child(even) {
-    align-self: flex-end;
+    width: 100%;
+    max-width: none;
   }
 }
 
@@ -792,6 +785,10 @@ body[data-theme="dark"] .semester-label {
 }
 
 @media (max-width: 480px) {
+  .subjects-row {
+    grid-template-columns: 1fr;
+  }
+
   .milestone-floating {
     bottom: 4.1rem;
   }
