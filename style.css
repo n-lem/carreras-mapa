@@ -1115,6 +1115,35 @@ body[data-theme="dark"] .semester-label {
     padding: .6rem 0;
   }
 
+  #diagram-container {
+    overflow: visible;
+  }
+
+  #arrows-svg {
+    z-index: 6 !important;
+  }
+
+  .arrow-line,
+  .arrow-line.state-regular,
+  .arrow-line.state-approved,
+  .arrow-line.path-active,
+  .arrow-line.path-muted {
+    stroke: #475569 !important;
+    stroke-opacity: .92 !important;
+    stroke-width: 1.6 !important;
+    stroke-dasharray: none !important;
+    marker-end: none !important;
+  }
+
+  .semester-block {
+    background: transparent !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .subject-card {
+    box-shadow: none !important;
+  }
+
   .career-hero {
     margin: 0 0 .4rem 0;
     padding: 0;
