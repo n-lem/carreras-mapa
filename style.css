@@ -345,11 +345,11 @@ body[data-theme="dark"] .career-picker select {
 }
 
 .career-progress-floating {
-  position: fixed;
-  top: 6rem;
-  right: 1rem;
-  z-index: 9700;
-  width: min(360px, calc(100vw - 2rem));
+  position: sticky;
+  top: .6rem;
+  z-index: 40;
+  width: min(540px, calc(100vw - 2rem));
+  margin: .65rem auto 0;
 }
 
 .career-progress-box {
@@ -616,7 +616,7 @@ body[data-theme="dark"] .career-fab-panel select {
 }
 
 /* ── Diagram container ────────────────────────────────────── */
-main { padding: 2rem 1rem 6rem; }
+main { padding: 1.15rem 1rem 2.8rem; }
 
 #diagram-container {
   position: relative;
@@ -631,7 +631,7 @@ main { padding: 2rem 1rem 6rem; }
   height: 100%;
   pointer-events: none;
   overflow: visible;
-  z-index: 2;
+  z-index: 0;
 }
 
 /* ── Semesters ────────────────────────────────────────────── */
@@ -651,14 +651,14 @@ main { padding: 2rem 1rem 6rem; }
   padding: .85rem .9rem;
   border: 1px solid rgba(148, 163, 184, .26);
   border-radius: calc(var(--radius) + 2px);
-  background: rgba(148, 163, 184, .09);
+  background: rgba(148, 163, 184, .05);
   box-shadow: var(--shadow);
   position: relative;
   z-index: 1;
 }
 
 body[data-theme="dark"] .semester-block {
-  background: rgba(30, 41, 59, .78);
+  background: rgba(30, 41, 59, .44);
   border-color: rgba(71, 85, 105, .62);
 }
 
@@ -779,21 +779,21 @@ body[data-theme="dark"] .semester-label {
 .arrow-line {
   fill: none;
   stroke: var(--edge-color, #94a3b8);
-  stroke-width: 2;
-  stroke-opacity: .3;
+  stroke-width: 1.85;
+  stroke-opacity: .22;
   stroke-dasharray: 5 4;
   transition: stroke-width .3s, stroke-opacity .3s;
 }
 
 .arrow-line.state-regular {
-  stroke-width: 2.4;
-  stroke-opacity: .75;
+  stroke-width: 2.1;
+  stroke-opacity: .52;
   stroke-dasharray: none;
 }
 
 .arrow-line.state-approved {
-  stroke-width: 3;
-  stroke-opacity: 1;
+  stroke-width: 2.45;
+  stroke-opacity: .82;
   stroke-dasharray: none;
 }
 
@@ -877,7 +877,7 @@ body[data-theme="dark"] .semester-label {
 .onboarding-actions button:hover { filter: brightness(.96); }
 
 .site-footer {
-  margin: 1.8rem auto 1rem;
+  margin: 1rem auto .85rem;
   max-width: 960px;
   padding: 0 1rem;
   font-size: .78rem;
@@ -924,9 +924,7 @@ body[data-theme="dark"] .semester-label {
   }
 
   .career-progress-floating {
-    top: auto;
-    bottom: 7.8rem;
-    right: 1rem;
+    width: min(540px, calc(100vw - 1.5rem));
   }
 }
 
@@ -1019,10 +1017,9 @@ body[data-theme="dark"] .semester-label {
   }
 
   .career-progress-floating {
-    bottom: 8rem;
-    left: .75rem;
-    right: .75rem;
-    width: auto;
+    top: .45rem;
+    width: calc(100vw - 1.5rem);
+    margin-top: .55rem;
   }
 
   #semesters {
