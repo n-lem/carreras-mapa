@@ -1,41 +1,67 @@
 # carreras-unpaz
 Mapa de correlatividades para carreras UNPAZ.
 
-## Qué se versiona y qué no
+## Características principales
 
-Sí se versiona:
-- `tools/pdf_to_plan_json.py` (script de extracción)
-- `tools/requirements.txt`
-- código web (`index.html`, `style.css`, `script.js`)
+- Validación estricta de correlatividades (`Regular` y `Aprobada`).
+- Persistencia con `localStorage` versionada y migración automática.
+- Exportar/importar progreso por carrera (`JSON`).
+- Acciones masivas por cuatrimestre (`Regular`, `Aprobada`, `Pendiente`, `Ciclo`).
+- Resaltado visual de materias bloqueadas en acciones masivas.
+- Catálogo dinámico de carreras (`data/planes/catalog.json`).
 
-No se versiona (por diseño):
-- PDFs de entrada (`data/pdfs/*`)
-- JSON generados (`data/planes/*.json`)
-
-Esto permite un repo limpio y regenerable: cada entorno genera sus propios JSON.
-
-## Flujo para agregar carreras
+## Flujo para agregar carreras desde PDF
 
 1. Copiar PDFs a `data/pdfs/`.
-2. Instalar dependencias:
+2. Instalar dependencias Python:
 
 ```bash
 python -m pip install -r tools/requirements.txt
 ```
 
-3. Ejecutar el parser:
+3. Ejecutar parser + limpieza automática de JSON obsoletos:
 
 ```bash
-python tools/pdf_to_plan_json.py --input "data/pdfs" --output "data/planes" --verbose
+python tools/pdf_to_plan_json.py --input "data/pdfs" --output "data/planes" --split "1:5,2:5,3:4,4:5,5:5" --prune --verbose
 ```
 
-4. Levantar la web (Live Server) y elegir la carrera en el selector.
+4. Levantar la web con Live Server o servidor estático.
 
-## Archivos generados (locales)
+## Testing
 
-Por cada PDF:
-- `<slug>.json`: metadata + materias + hitos
-- `<slug>.materias.json`: array listo para la web (`id`, `nombre`, `cuatrimestre`, `correlativas`)
+Instalar dependencias JS:
 
-Además:
-- `catalog.json`: catálogo de carreras para poblar el selector en la interfaz.
+```bash
+npm install
+```
+
+Tests de reglas de negocio:
+
+```bash
+npm run test:rules
+```
+
+Tests E2E responsive (Playwright):
+
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
+
+## Seguridad
+
+- `core.js` valida schema de materias/metadata antes de usar datos.
+- `script.js` valida catálogo y rechaza estructuras inválidas.
+- CSP y headers de seguridad:
+  - `index.html` incluye CSP por `meta` para entornos simples.
+  - `_headers` para Netlify.
+  - `vercel.json` para Vercel.
+
+## Estructura de archivos de planes
+
+Por carrera:
+- `<slug>.json`: metadata + hitos.
+- `<slug>.materias.json`: materias para la UI.
+
+Global:
+- `catalog.json`: lista de carreras disponibles en el selector.

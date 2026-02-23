@@ -13,6 +13,7 @@ const DEFAULT_CATALOG_URL = "data/planes/catalog.json";
 const SELECTED_PLAN_KEY = "unpaz_selected_plan";
 const MILESTONES_HIDDEN_PREFIX = "unpaz_milestones_hidden:";
 const THEME_KEY = "unpaz_theme";
+const PROGRESS_SCHEMA_VERSION = 2;
 const STATE_LABELS = ["Pendiente", "Regular", "Aprobada"];
 const STATE_CLASSES = ["", "state-1", "state-2"];
 const EDGE_COLORS = [
@@ -23,6 +24,13 @@ const FALLBACK_MATERIAS = [
   { id: "6001", nombre: "Análisis Matemático I", cuatrimestre: 1, correlativas: [] },
   { id: "6006", nombre: "Análisis Matemático II", cuatrimestre: 2, correlativas: ["6001"] }
 ];
+const BULK_ACTIONS = [
+  { action: "regular", label: "Regular", targetState: 1 },
+  { action: "approved", label: "Aprobada", targetState: 2 },
+  { action: "pending", label: "Pendiente", targetState: 0 },
+  { action: "cycle", label: "Ciclo", targetState: null }
+];
+const Core = window.UnpazCore;
 
 let STORAGE_KEY = "unpaz_progress:demo";
 let PLAN_CATALOG = [];
@@ -35,6 +43,8 @@ let DEPENDENTS = {};
 let milestoneStateByKey = {};
 let milestonesPanelHidden = false;
 let careerFabOpen = false;
+let activeSemesterMenu = null;
+let blockedHighlightTimer = null;
 
 /** @type {Record<string, 0|1|2>} */
 let progress = {};
@@ -185,65 +195,59 @@ function toggleTheme() {
   setTheme(current === "dark" ? "light" : "dark");
 }
 
-function normalizeMateria(raw) {
-  const id = String(raw?.id ?? "").trim();
-  const nombre = String(raw?.nombre ?? "").trim();
-  const cuatrimestre = Number(raw?.cuatrimestre);
-  if (!id || !nombre || !Number.isFinite(cuatrimestre)) return null;
+function setMaterias(materias) {
+  MATERIAS = materias;
+  const indexes = Core.buildIndexes(MATERIAS);
+  MATERIAS_BY_ID = indexes.byId;
+  DEPENDENTS = indexes.dependents;
+}
 
-  const correlativasRaw = Array.isArray(raw?.correlativas) ? raw.correlativas : [];
-  const correlativas = unique(
-    correlativasRaw
-      .map((value) => String(value).trim())
-      .filter(Boolean)
-      .filter((correlativaId) => correlativaId !== id)
-  );
-
+function serializeProgressPayload() {
   return {
-    id,
-    nombre,
-    cuatrimestre: Math.max(1, Math.trunc(cuatrimestre)),
-    correlativas
+    version: PROGRESS_SCHEMA_VERSION,
+    updatedAt: new Date().toISOString(),
+    progress
   };
 }
 
-function setMaterias(materias) {
-  MATERIAS = materias;
-  MATERIAS_BY_ID = Object.fromEntries(MATERIAS.map((materia) => [materia.id, materia]));
-  DEPENDENTS = MATERIAS.reduce((acc, materia) => {
-    materia.correlativas.forEach((correlativaId) => {
-      if (!acc[correlativaId]) acc[correlativaId] = [];
-      acc[correlativaId].push(materia.id);
-    });
-    return acc;
-  }, {});
+function migrateLegacyProgressPayload(parsed) {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+
+  if (typeof parsed.version === "number" && parsed.progress && typeof parsed.progress === "object") {
+    return parsed;
+  }
+
+  return {
+    version: 1,
+    updatedAt: null,
+    progress: parsed
+  };
 }
 
 function loadProgress() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeStorageGet(STORAGE_KEY);
     if (!raw) return {};
 
     const parsed = JSON.parse(raw);
-    const valid = {};
+    const migrated = migrateLegacyProgressPayload(parsed);
+    if (!migrated) return {};
 
-    Object.entries(parsed).forEach(([id, state]) => {
-      if (!MATERIAS_BY_ID[id]) return;
-      if (state === 0 || state === 1 || state === 2) valid[id] = state;
-    });
-
-    return valid;
+    const nextProgress = Core.coerceProgressMap(migrated.progress, MATERIAS_BY_ID);
+    const originalSerialized = JSON.stringify(migrated.progress || {});
+    const normalizedSerialized = JSON.stringify(nextProgress);
+    if (migrated.version !== PROGRESS_SCHEMA_VERSION || originalSerialized !== normalizedSerialized) {
+      progress = nextProgress;
+      saveProgress();
+    }
+    return nextProgress;
   } catch {
     return {};
   }
 }
 
 function saveProgress() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-  } catch {
-    // Ignora errores de cuota/privacidad del navegador.
-  }
+  safeStorageSet(STORAGE_KEY, JSON.stringify(serializeProgressPayload()));
 }
 
 function getState(id) {
@@ -251,91 +255,13 @@ function getState(id) {
 }
 
 function canAdvanceTo(id, targetState) {
-  const materia = MATERIAS_BY_ID[id];
-  if (!materia) return false;
-
-  if (targetState === 1) {
-    return materia.correlativas.every((cid) => getState(cid) >= 1);
-  }
-
-  if (targetState === 2) {
-    return materia.correlativas.every((cid) => getState(cid) === 2);
-  }
-
-  return true;
-}
-
-function canAdvanceToWithSnapshot(id, targetState, snapshot) {
-  const materia = MATERIAS_BY_ID[id];
-  if (!materia) return false;
-
-  const getSnapshotState = (materiaId) => snapshot[materiaId] ?? 0;
-
-  if (targetState === 1) {
-    return materia.correlativas.every((cid) => getSnapshotState(cid) >= 1);
-  }
-
-  if (targetState === 2) {
-    return materia.correlativas.every((cid) => getSnapshotState(cid) === 2);
-  }
-
-  return true;
-}
-
-function getSemesterCycleTarget(cuatrimestre) {
-  const ids = MATERIAS
-    .filter((materia) => materia.cuatrimestre === cuatrimestre)
-    .map((materia) => materia.id);
-
-  if (ids.length === 0) return 1;
-
-  const states = ids.map((id) => getState(id));
-  if (states.every((state) => state === 2)) return 0;
-  if (states.every((state) => state >= 1)) return 2;
-  return 1;
-}
-
-function blockingDependentsOutsideSemester(id, semesterIds, snapshot) {
-  const semesterSet = new Set(semesterIds);
-  const dependentIds = DEPENDENTS[id] ?? [];
-  return dependentIds
-    .map((dependentId) => MATERIAS_BY_ID[dependentId])
-    .filter((materia) => {
-      if (!materia) return false;
-      const depId = materia.id;
-      const depState = snapshot[depId] ?? 0;
-      if (depState === 0) return false;
-      return !semesterSet.has(depId);
-    });
+  return Core.canAdvanceTo(id, targetState, progress, MATERIAS_BY_ID);
 }
 
 function normalizeProgressState() {
-  let changed = false;
-  let keepFixing = true;
-
-  while (keepFixing) {
-    keepFixing = false;
-
-    MATERIAS.forEach((materia) => {
-      const state = getState(materia.id);
-      if (state === 0) return;
-
-      if (state === 1 && !canAdvanceTo(materia.id, 1)) {
-        progress[materia.id] = 0;
-        changed = true;
-        keepFixing = true;
-        return;
-      }
-
-      if (state === 2 && !canAdvanceTo(materia.id, 2)) {
-        progress[materia.id] = canAdvanceTo(materia.id, 1) ? 1 : 0;
-        changed = true;
-        keepFixing = true;
-      }
-    });
-  }
-
-  return changed;
+  const normalized = Core.normalizeProgressMap(progress, MATERIAS, MATERIAS_BY_ID);
+  progress = normalized.progress;
+  return normalized.changed;
 }
 
 function isLocked(id) {
@@ -343,19 +269,11 @@ function isLocked(id) {
 }
 
 function getBlockingDependents(id) {
-  const dependentIds = DEPENDENTS[id] ?? [];
-  return dependentIds
-    .map((dependentId) => MATERIAS_BY_ID[dependentId])
-    .filter((materia) => getState(materia.id) > 0);
+  return Core.getBlockingDependents(id, progress, DEPENDENTS, MATERIAS_BY_ID);
 }
 
 function getMissingCorrelativas(id, targetState) {
-  const materia = MATERIAS_BY_ID[id];
-  if (!materia) return [];
-
-  return materia.correlativas
-    .filter((correlativaId) => getState(correlativaId) < targetState)
-    .map((correlativaId) => MATERIAS_BY_ID[correlativaId]?.nombre || correlativaId);
+  return Core.getMissingCorrelativas(id, targetState, progress, MATERIAS_BY_ID);
 }
 
 function buildDefs(svg) {
@@ -482,6 +400,7 @@ function renderSemesters() {
   const container = document.getElementById("semesters");
   if (!container) return;
 
+  activeSemesterMenu = null;
   container.innerHTML = "";
 
   const grouped = MATERIAS.reduce((acc, materia) => {
@@ -497,6 +416,9 @@ function renderSemesters() {
       const block = document.createElement("section");
       block.className = "semester-block";
 
+      const labelWrap = document.createElement("div");
+      labelWrap.className = "semester-label-wrap";
+
       const label = document.createElement("h2");
       label.className = "semester-label";
       label.textContent = `${cuatrimestre}° Cuatrimestre`;
@@ -504,17 +426,21 @@ function renderSemesters() {
       label.setAttribute("tabindex", "0");
       label.setAttribute(
         "aria-label",
-        `${cuatrimestre}° cuatrimestre. Acción masiva cíclica 0-1-2-0.`
+        `${cuatrimestre}° cuatrimestre. Abrir menú de acciones masivas.`
       );
-      label.title = "Ciclo masivo: Pendiente -> Regular -> Aprobada -> Pendiente";
-      label.addEventListener("click", () => handleSemesterBulkClick(cuatrimestre));
+      label.title = "Acciones masivas del cuatrimestre";
+      label.addEventListener("click", (event) => {
+        event.stopPropagation();
+        toggleSemesterBulkMenu(cuatrimestre, labelWrap);
+      });
       label.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          handleSemesterBulkClick(cuatrimestre);
+          toggleSemesterBulkMenu(cuatrimestre, labelWrap);
         }
       });
-      block.appendChild(label);
+      labelWrap.appendChild(label);
+      block.appendChild(labelWrap);
 
       const row = document.createElement("div");
       row.className = "subjects-row";
@@ -523,6 +449,120 @@ function renderSemesters() {
       block.appendChild(row);
       container.appendChild(block);
     });
+}
+
+function closeSemesterBulkMenu() {
+  if (!activeSemesterMenu) return;
+  activeSemesterMenu.remove();
+  activeSemesterMenu = null;
+}
+
+function highlightBlockedCards(ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return;
+
+  if (blockedHighlightTimer) {
+    clearTimeout(blockedHighlightTimer);
+    blockedHighlightTimer = null;
+  }
+
+  ids.forEach((id) => {
+    const card = document.querySelector(`.subject-card[data-id="${id}"]`);
+    if (!card) return;
+    card.classList.remove("bulk-blocked");
+    // Force reflow to restart animation in repeated attempts.
+    void card.offsetWidth; // eslint-disable-line no-unused-expressions
+    card.classList.add("bulk-blocked");
+  });
+
+  blockedHighlightTimer = setTimeout(() => {
+    ids.forEach((id) => {
+      const card = document.querySelector(`.subject-card[data-id="${id}"]`);
+      if (card) card.classList.remove("bulk-blocked");
+    });
+    blockedHighlightTimer = null;
+  }, 760);
+}
+
+function applySemesterBulkAction(cuatrimestre, action) {
+  const config = BULK_ACTIONS.find((item) => item.action === action);
+  if (!config) return;
+
+  const params = {
+    cuatrimestre,
+    progressMap: progress,
+    materias: MATERIAS,
+    materiasById: MATERIAS_BY_ID,
+    dependents: DEPENDENTS
+  };
+  const result =
+    action === "cycle"
+      ? Core.applySemesterCycleAction(params)
+      : Core.applySemesterTargetAction({ ...params, targetState: config.targetState });
+
+  if (result.changedIds.length === 0) {
+    const targetState = action === "cycle" ? result.targetState : config.targetState;
+    showToast(`Cuatrimestre ${cuatrimestre}: no se pudo avanzar a ${STATE_LABELS[targetState]}.`);
+    highlightBlockedCards(result.blocked.map((item) => item.id));
+    return;
+  }
+
+  progress = { ...progress, ...result.progress };
+  normalizeProgressState();
+  saveProgress();
+  renderSemesters();
+  drawArrows();
+  updateCareerProgress();
+  updateMilestones();
+
+  const blockedIds = result.blocked.map((item) => item.id);
+  highlightBlockedCards(blockedIds);
+
+  const targetState = action === "cycle" ? result.targetState : config.targetState;
+  if (blockedIds.length > 0) {
+    showToast(
+      `Cuatrimestre ${cuatrimestre}: ${result.changedIds.length}/${result.semesterIds.length} en ` +
+      `${STATE_LABELS[targetState]}. ${blockedIds.length} bloqueadas por correlativas/dependencias.`
+    );
+    return;
+  }
+
+  showToast(
+    `Cuatrimestre ${cuatrimestre}: ${result.changedIds.length}/${result.semesterIds.length} en ${STATE_LABELS[targetState]}.`
+  );
+}
+
+function toggleSemesterBulkMenu(cuatrimestre, anchorElement) {
+  const alreadyOpenForSameSemester =
+    activeSemesterMenu &&
+    activeSemesterMenu.dataset.cuatrimestre === String(cuatrimestre) &&
+    activeSemesterMenu.parentElement === anchorElement;
+
+  closeSemesterBulkMenu();
+  if (alreadyOpenForSameSemester) return;
+
+  const menu = document.createElement("div");
+  menu.className = "semester-bulk-menu";
+  menu.dataset.cuatrimestre = String(cuatrimestre);
+  menu.setAttribute("role", "menu");
+  menu.setAttribute("aria-label", `Acciones para ${cuatrimestre}° cuatrimestre`);
+
+  BULK_ACTIONS.forEach((item) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "semester-bulk-btn";
+    btn.dataset.action = item.action;
+    btn.textContent = item.label;
+    btn.setAttribute("role", "menuitem");
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      closeSemesterBulkMenu();
+      applySemesterBulkAction(cuatrimestre, item.action);
+    });
+    menu.appendChild(btn);
+  });
+
+  anchorElement.appendChild(menu);
+  activeSemesterMenu = menu;
 }
 
 function updateCard(id) {
@@ -790,96 +830,6 @@ function handleCardClick(id) {
   updateMilestones();
 }
 
-function handleSemesterBulkClick(cuatrimestre) {
-  const semesterMaterias = MATERIAS.filter((materia) => materia.cuatrimestre === cuatrimestre);
-  if (semesterMaterias.length === 0) return;
-
-  const snapshot = { ...progress };
-  const semesterIds = semesterMaterias.map((materia) => materia.id);
-  const targetState = getSemesterCycleTarget(cuatrimestre);
-  const changedIds = [];
-  const blocked = [];
-
-  if (targetState === 0) {
-    semesterIds.forEach((id) => {
-      const current = snapshot[id] ?? 0;
-      if (current === 0) return;
-
-      const blockers = blockingDependentsOutsideSemester(id, semesterIds, snapshot);
-      if (blockers.length > 0) {
-        blocked.push({ id, blockers });
-        return;
-      }
-
-      snapshot[id] = 0;
-      changedIds.push(id);
-    });
-  } else {
-    let keepUpdating = true;
-    let safety = 0;
-
-    while (keepUpdating && safety < semesterIds.length * 4) {
-      keepUpdating = false;
-      safety += 1;
-
-      semesterIds.forEach((id) => {
-        const current = snapshot[id] ?? 0;
-        let next = current;
-
-        if (targetState === 1) {
-          if (current < 1 && canAdvanceToWithSnapshot(id, 1, snapshot)) {
-            next = 1;
-          }
-        } else {
-          if (canAdvanceToWithSnapshot(id, 2, snapshot)) {
-            next = Math.max(next, 2);
-          } else if (current < 1 && canAdvanceToWithSnapshot(id, 1, snapshot)) {
-            next = 1;
-          }
-        }
-
-        if (next !== current) {
-          snapshot[id] = next;
-          if (!changedIds.includes(id)) changedIds.push(id);
-          keepUpdating = true;
-        }
-      });
-    }
-  }
-
-  if (changedIds.length === 0) {
-    const targetLabel = STATE_LABELS[targetState];
-    showToast(`Cuatrimestre ${cuatrimestre}: no se pudo avanzar a ${targetLabel}.`);
-    return;
-  }
-
-  changedIds.forEach((id) => {
-    progress[id] = snapshot[id] ?? 0;
-  });
-
-  normalizeProgressState();
-  saveProgress();
-  renderSemesters();
-  drawArrows();
-  updateCareerProgress();
-  updateMilestones();
-
-  if (blocked.length > 0) {
-    const sample = blocked
-      .slice(0, 2)
-      .map(({ id, blockers }) => `${MATERIAS_BY_ID[id]?.nombre || id} <- ${blockers[0]?.nombre || "dependiente"}`)
-      .join(" | ");
-    showToast(
-      `Cuatrimestre ${cuatrimestre}: ${changedIds.length}/${semesterIds.length} actualizadas. ` +
-      `${blocked.length} bloqueadas por dependencias (${sample}).`
-    );
-    return;
-  }
-
-  const targetLabel = STATE_LABELS[targetState];
-  showToast(`Cuatrimestre ${cuatrimestre}: ${changedIds.length}/${semesterIds.length} en ${targetLabel}.`);
-}
-
 function resetProgress() {
   if (!confirm("¿Seguro que querés borrar todo el progreso guardado?")) return;
   progress = {};
@@ -888,6 +838,82 @@ function resetProgress() {
   drawArrows();
   updateCareerProgress();
   updateMilestones();
+}
+
+function exportProgress() {
+  const payload = {
+    schemaVersion: PROGRESS_SCHEMA_VERSION,
+    planSlug: ACTIVE_PLAN?.slug || "demo",
+    carrera: ACTIVE_PLAN_META?.carrera || ACTIVE_PLAN?.carrera || "Sin carrera",
+    exportedAt: new Date().toISOString(),
+    progress
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const date = new Date().toISOString().slice(0, 10);
+  const filename = `progreso-${payload.planSlug}-${date}.json`;
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function importProgressFromFile(file) {
+  if (!file) return;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(await file.text());
+  } catch {
+    showToast("Archivo inválido: no es un JSON válido.");
+    return;
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    showToast("Archivo inválido: estructura incorrecta.");
+    return;
+  }
+
+  const importSlug = String(parsed.planSlug || parsed.slug || "").trim();
+  if (importSlug && ACTIVE_PLAN?.slug !== importSlug) {
+    const matchingPlan = PLAN_CATALOG.find((plan) => plan.slug === importSlug);
+    if (!matchingPlan) {
+      showToast("El archivo corresponde a una carrera no disponible en este catálogo.");
+      return;
+    }
+
+    const shouldSwitch = confirm(
+      `El archivo corresponde a "${matchingPlan.carrera}". ¿Querés cambiar de carrera e importar?`
+    );
+    if (!shouldSwitch) return;
+
+    const switched = await activatePlan(matchingPlan, false);
+    if (!switched) {
+      showToast("No se pudo cambiar de carrera para importar el progreso.");
+      return;
+    }
+  }
+
+  const rawProgress = parsed.progress ?? parsed;
+  const nextProgress = Core.coerceProgressMap(rawProgress, MATERIAS_BY_ID);
+  if (Object.keys(nextProgress).length === 0) {
+    showToast("El archivo no contiene progreso válido para esta carrera.");
+    return;
+  }
+
+  progress = nextProgress;
+  normalizeProgressState();
+  saveProgress();
+  renderSemesters();
+  drawArrows();
+  updateCareerProgress();
+  updateMilestones();
+  showToast(`Progreso importado: ${Object.keys(nextProgress).length} materias cargadas.`);
 }
 
 function getBasePath(url) {
@@ -912,14 +938,27 @@ function resolveFallbackPlanUrl() {
 }
 
 function normalizeCatalogEntry(raw, basePath) {
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Entrada de catálogo inválida: se esperaba objeto.");
+  }
 
   const materiasUrl = String(raw.materias || raw.materiasUrl || raw.plan || "").trim();
   const metadataUrl = String(raw.metadata || raw.metadataUrl || "").trim();
-  if (!materiasUrl) return null;
+  if (!materiasUrl) {
+    throw new Error("Entrada de catálogo inválida: falta ruta de materias.");
+  }
 
   const slug = String(raw.slug || toPlanSlug(materiasUrl)).trim() || toPlanSlug(materiasUrl);
   const carrera = String(raw.carrera || raw.nombre || humanizeSlug(slug)).trim();
+  if (!slug || !/^[a-z0-9-]+$/i.test(slug)) {
+    throw new Error(`Entrada de catálogo inválida: slug incorrecto (${slug || "vacío"}).`);
+  }
+  if (!carrera) {
+    throw new Error(`Entrada de catálogo inválida: carrera vacía para slug ${slug}.`);
+  }
+  if (!/\.json$/i.test(materiasUrl)) {
+    throw new Error(`Entrada de catálogo inválida: materias debe ser .json (${materiasUrl}).`);
+  }
 
   return {
     slug,
@@ -956,11 +995,19 @@ async function loadPlanCatalog() {
   try {
     const payload = await fetchJson(catalogUrl, "catálogo de carreras");
     const rawEntries = Array.isArray(payload) ? payload : Array.isArray(payload?.carreras) ? payload.carreras : [];
+    if (!Array.isArray(rawEntries)) {
+      throw new Error("Formato de catálogo inválido: se esperaba array de carreras.");
+    }
     const basePath = getBasePath(catalogUrl);
 
-    const catalog = rawEntries
-      .map((entry) => normalizeCatalogEntry(entry, basePath))
-      .filter(Boolean);
+    const catalog = rawEntries.map((entry) => normalizeCatalogEntry(entry, basePath));
+    const slugSet = new Set();
+    catalog.forEach((entry) => {
+      if (slugSet.has(entry.slug)) {
+        throw new Error(`Slug duplicado en catálogo: ${entry.slug}`);
+      }
+      slugSet.add(entry.slug);
+    });
 
     return catalog.length > 0 ? catalog : fallback;
   } catch (error) {
@@ -996,28 +1043,16 @@ function populateCareerSelect(catalog, selectedSlug) {
 
 async function loadPlanData(plan) {
   const rawMaterias = await fetchJson(plan.materiasUrl, "plan de materias");
-  if (!Array.isArray(rawMaterias)) {
-    throw new Error("El JSON de materias debe ser un array.");
-  }
-
-  const materias = rawMaterias
-    .map(normalizeMateria)
-    .filter(Boolean)
-    .sort((a, b) => {
-      if (a.cuatrimestre !== b.cuatrimestre) return a.cuatrimestre - b.cuatrimestre;
-      return a.id.localeCompare(b.id);
-    });
-
-  if (materias.length === 0) {
-    throw new Error("El plan JSON no contiene materias válidas.");
-  }
+  const materias = Core.validateMateriasSchema(rawMaterias);
 
   let metadata = null;
   if (plan.metadataUrl) {
     try {
-      metadata = await fetchJson(plan.metadataUrl, "metadata de carrera");
+      const rawMetadata = await fetchJson(plan.metadataUrl, "metadata de carrera");
+      metadata = Core.validateMetadataSchema(rawMetadata);
     } catch (error) {
-      console.warn(error);
+      console.warn("Metadata inválida, se usará fallback:", error);
+      metadata = null;
     }
   }
 
@@ -1103,6 +1138,7 @@ function bindUiEvents() {
     resizeTimer = setTimeout(() => {
       drawArrows();
       if (window.innerWidth > 768) setCareerFabOpen(false);
+      closeSemesterBulkMenu();
     }, 80);
   });
 
@@ -1111,6 +1147,22 @@ function bindUiEvents() {
 
   const themeButton = document.getElementById("btn-theme");
   if (themeButton) themeButton.addEventListener("click", toggleTheme);
+
+  const exportButton = document.getElementById("btn-export");
+  if (exportButton) exportButton.addEventListener("click", exportProgress);
+
+  const importButton = document.getElementById("btn-import");
+  const importInput = document.getElementById("input-import-progress");
+  if (importButton && importInput) {
+    importButton.addEventListener("click", () => importInput.click());
+    importInput.addEventListener("change", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      const file = target.files?.[0];
+      await importProgressFromFile(file);
+      target.value = "";
+    });
+  }
 
   const showMilestonesButton = document.getElementById("btn-show-milestones");
   if (showMilestonesButton) {
@@ -1152,13 +1204,25 @@ function bindUiEvents() {
   }
 
   document.addEventListener("click", (event) => {
-    if (!careerFabOpen) return;
-    const panel = document.getElementById("career-fab-panel");
-    const button = document.getElementById("btn-career-fab");
-    if (!panel || !button) return;
-
     const target = event.target;
-    if (target instanceof Node && (panel.contains(target) || button.contains(target))) return;
+    if (!(target instanceof Node)) return;
+
+    if (activeSemesterMenu && !activeSemesterMenu.contains(target)) {
+      closeSemesterBulkMenu();
+    }
+
+    if (careerFabOpen) {
+      const panel = document.getElementById("career-fab-panel");
+      const button = document.getElementById("btn-career-fab");
+      if (panel && button && !panel.contains(target) && !button.contains(target)) {
+        setCareerFabOpen(false);
+      }
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    closeSemesterBulkMenu();
     setCareerFabOpen(false);
   });
 
@@ -1171,6 +1235,11 @@ function bindUiEvents() {
 }
 
 async function init() {
+  if (!Core) {
+    console.error("No se pudo inicializar la app: core.js no está cargado.");
+    return;
+  }
+
   setTheme(resolvePreferredTheme());
 
   const svg = document.getElementById("arrows-svg");

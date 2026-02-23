@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+  />
   <title>Mapa de Correlatividades – UNPAZ</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -27,6 +31,8 @@
           <span class="legend-item approved">Aprobada</span>
         </div>
         <button id="btn-theme" type="button" title="Cambiar tema">Modo oscuro</button>
+        <button id="btn-export" type="button" title="Descargar progreso actual">Exportar</button>
+        <button id="btn-import" type="button" title="Importar progreso desde archivo">Importar</button>
         <button id="btn-reset" title="Borrar todo el progreso guardado">Reiniciar progreso</button>
       </div>
     </div>
@@ -58,7 +64,9 @@
     <div class="career-fab-title">Cambiar carrera</div>
     <select id="career-select-floating" aria-label="Seleccionar carrera (flotante)"></select>
   </section>
+  <input id="input-import-progress" type="file" accept="application/json,.json" hidden />
 
-  <script src="script.js"></script>
+  <script src="core.js" defer></script>
+  <script src="script.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,14 @@
+{
+  "name": "carreras-unpaz",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Mapa de correlatividades UNPAZ",
+  "scripts": {
+    "test:rules": "node --test tests/rules.test.cjs",
+    "test:e2e": "playwright test",
+    "test": "npm run test:rules"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}
