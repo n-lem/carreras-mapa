@@ -251,7 +251,8 @@ def extract_career_name(full_text: str, fallback: str) -> str:
     text = unicodedata.normalize("NFKC", full_text or "")
     # Keep line breaks to avoid swallowing extra paragraphs.
     patterns = [
-        r"Carrera de grado/\s*[\r\n]+\s*([^\n\r]+)",
+        r"Carrera de\s*(?:grado|pregrado)\s*/?\s*[\r\n]+\s*([^\n\r]+)",
+        r"(Tecnicatura Universitaria en\s*[^\n\r]+)",
         r"(Licenciatura en\s*[^\n\r]+)",
         r"(Ingenier[íi]a en\s*[^\n\r]+)",
         r"Título de grado:\s*([^\n\r]+)",
