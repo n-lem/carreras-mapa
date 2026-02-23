@@ -41,6 +41,7 @@ let careerFabOpen = false;
 let blockedHighlightTimer = null;
 let toolsMenuOpen = false;
 let suppressAchievementNotifications = true;
+let activePathTargetId = null;
 
 /** @type {Record<string, 0|1|2>} */
 let progress = {};
@@ -442,6 +443,73 @@ function edgeColorIndexForMateria(materiaId) {
   return (Math.max(1, cuatrimestre) - 1) % EDGE_COLORS.length;
 }
 
+function getUpstreamGraph(targetId) {
+  const nodes = new Set([targetId]);
+  const edges = new Set();
+  const visited = new Set();
+
+  const visit = (id) => {
+    if (visited.has(id)) return;
+    visited.add(id);
+
+    const materia = MATERIAS_BY_ID[id];
+    if (!materia) return;
+
+    materia.correlativas.forEach((prevId) => {
+      nodes.add(prevId);
+      edges.add(`${prevId}->${id}`);
+      visit(prevId);
+    });
+  };
+
+  visit(targetId);
+  return { nodes, edges };
+}
+
+function clearPathHighlightsDom() {
+  document.querySelectorAll(".subject-card.path-target, .subject-card.path-prereq").forEach((card) => {
+    card.classList.remove("path-target", "path-prereq");
+  });
+
+  document.querySelectorAll("#arrows-svg .arrow-line.path-active, #arrows-svg .arrow-line.path-muted").forEach((line) => {
+    line.classList.remove("path-active", "path-muted");
+  });
+}
+
+function applyPathHighlights(targetId) {
+  if (!targetId || !MATERIAS_BY_ID[targetId]) {
+    activePathTargetId = null;
+    clearPathHighlightsDom();
+    return;
+  }
+
+  activePathTargetId = targetId;
+  clearPathHighlightsDom();
+
+  const { nodes, edges } = getUpstreamGraph(targetId);
+
+  document.querySelectorAll(".subject-card").forEach((card) => {
+    const id = card.getAttribute("data-id");
+    if (!id) return;
+    if (id === targetId) card.classList.add("path-target");
+    else if (nodes.has(id)) card.classList.add("path-prereq");
+  });
+
+  document.querySelectorAll("#arrows-svg .arrow-line").forEach((line) => {
+    const edgeKey = line.getAttribute("data-edge-key") || "";
+    if (edges.has(edgeKey)) {
+      line.classList.add("path-active");
+    } else {
+      line.classList.add("path-muted");
+    }
+  });
+}
+
+function clearPathHighlights() {
+  activePathTargetId = null;
+  clearPathHighlightsDom();
+}
+
 function drawArrows() {
   const svg = document.getElementById("arrows-svg");
   if (!svg) return;
@@ -464,11 +532,16 @@ function drawArrows() {
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("d", `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`);
       path.setAttribute("class", arrowClass(correlativaId, materia.id));
+      path.setAttribute("data-edge-key", `${correlativaId}->${materia.id}`);
       path.style.setProperty("--edge-color", EDGE_COLORS[colorIndex]);
       path.setAttribute("marker-end", `url(#arrowhead-${colorIndex})`);
       svg.appendChild(path);
     });
   });
+
+  if (activePathTargetId) {
+    applyPathHighlights(activePathTargetId);
+  }
 }
 
 function buildCard(materia) {
@@ -501,6 +574,10 @@ function buildCard(materia) {
   card.appendChild(status);
 
   card.addEventListener("click", () => handleCardClick(materia.id));
+  card.addEventListener("mouseenter", () => applyPathHighlights(materia.id));
+  card.addEventListener("mouseleave", clearPathHighlights);
+  card.addEventListener("focus", () => applyPathHighlights(materia.id));
+  card.addEventListener("blur", clearPathHighlights);
   card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();

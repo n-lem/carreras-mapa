@@ -350,6 +350,7 @@ body[data-theme="dark"] .career-picker select {
   z-index: 40;
   width: min(540px, calc(100vw - 2rem));
   margin: .65rem auto 0;
+  min-height: 5.1rem;
 }
 
 .career-progress-box {
@@ -644,6 +645,10 @@ main { padding: 1.15rem 1rem 2.8rem; }
   padding: .4rem .2rem;
 }
 
+#semesters:empty {
+  min-height: 55vh;
+}
+
 .semester-block {
   display: flex;
   flex-direction: column;
@@ -752,6 +757,14 @@ body[data-theme="dark"] .semester-label {
   color: var(--color-approved-text);
 }
 
+.subject-card.path-prereq {
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, .38), var(--shadow);
+}
+
+.subject-card.path-target {
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, .62), var(--shadow);
+}
+
 .subject-name {
   font-size: .88rem;
   font-weight: 600;
@@ -795,6 +808,16 @@ body[data-theme="dark"] .semester-label {
   stroke-width: 2.45;
   stroke-opacity: .82;
   stroke-dasharray: none;
+}
+
+.arrow-line.path-muted {
+  stroke-opacity: .06 !important;
+}
+
+.arrow-line.path-active {
+  stroke-width: 3.05 !important;
+  stroke-opacity: .98 !important;
+  stroke-dasharray: none !important;
 }
 
 /* ── Toast ────────────────────────────────────────────────── */
