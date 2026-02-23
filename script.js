@@ -282,6 +282,33 @@ function canAdvanceToWithSnapshot(id, targetState, snapshot) {
   return true;
 }
 
+function getSemesterCycleTarget(cuatrimestre) {
+  const ids = MATERIAS
+    .filter((materia) => materia.cuatrimestre === cuatrimestre)
+    .map((materia) => materia.id);
+
+  if (ids.length === 0) return 1;
+
+  const states = ids.map((id) => getState(id));
+  if (states.every((state) => state === 2)) return 0;
+  if (states.every((state) => state >= 1)) return 2;
+  return 1;
+}
+
+function blockingDependentsOutsideSemester(id, semesterIds, snapshot) {
+  const semesterSet = new Set(semesterIds);
+  const dependentIds = DEPENDENTS[id] ?? [];
+  return dependentIds
+    .map((dependentId) => MATERIAS_BY_ID[dependentId])
+    .filter((materia) => {
+      if (!materia) return false;
+      const depId = materia.id;
+      const depState = snapshot[depId] ?? 0;
+      if (depState === 0) return false;
+      return !semesterSet.has(depId);
+    });
+}
+
 function normalizeProgressState() {
   let changed = false;
   let keepFixing = true;
@@ -477,9 +504,9 @@ function renderSemesters() {
       label.setAttribute("tabindex", "0");
       label.setAttribute(
         "aria-label",
-        `${cuatrimestre}° cuatrimestre. Completar materias automáticamente.`
+        `${cuatrimestre}° cuatrimestre. Acción masiva cíclica 0-1-2-0.`
       );
-      label.title = "Completar materias de este cuatrimestre";
+      label.title = "Ciclo masivo: Pendiente -> Regular -> Aprobada -> Pendiente";
       label.addEventListener("click", () => handleSemesterBulkClick(cuatrimestre));
       label.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -769,34 +796,60 @@ function handleSemesterBulkClick(cuatrimestre) {
 
   const snapshot = { ...progress };
   const semesterIds = semesterMaterias.map((materia) => materia.id);
-  let keepUpdating = true;
-  let safety = 0;
+  const targetState = getSemesterCycleTarget(cuatrimestre);
+  const changedIds = [];
+  const blocked = [];
 
-  // Resolve in multiple passes so dependencies within the same semester can unlock each other.
-  while (keepUpdating && safety < semesterIds.length * 4) {
-    keepUpdating = false;
-    safety += 1;
-
+  if (targetState === 0) {
     semesterIds.forEach((id) => {
       const current = snapshot[id] ?? 0;
-      let next = current;
+      if (current === 0) return;
 
-      if (canAdvanceToWithSnapshot(id, 2, snapshot)) {
-        next = Math.max(next, 2);
-      } else if (canAdvanceToWithSnapshot(id, 1, snapshot)) {
-        next = Math.max(next, 1);
+      const blockers = blockingDependentsOutsideSemester(id, semesterIds, snapshot);
+      if (blockers.length > 0) {
+        blocked.push({ id, blockers });
+        return;
       }
 
-      if (next !== current) {
-        snapshot[id] = next;
-        keepUpdating = true;
-      }
+      snapshot[id] = 0;
+      changedIds.push(id);
     });
+  } else {
+    let keepUpdating = true;
+    let safety = 0;
+
+    while (keepUpdating && safety < semesterIds.length * 4) {
+      keepUpdating = false;
+      safety += 1;
+
+      semesterIds.forEach((id) => {
+        const current = snapshot[id] ?? 0;
+        let next = current;
+
+        if (targetState === 1) {
+          if (current < 1 && canAdvanceToWithSnapshot(id, 1, snapshot)) {
+            next = 1;
+          }
+        } else {
+          if (canAdvanceToWithSnapshot(id, 2, snapshot)) {
+            next = Math.max(next, 2);
+          } else if (current < 1 && canAdvanceToWithSnapshot(id, 1, snapshot)) {
+            next = 1;
+          }
+        }
+
+        if (next !== current) {
+          snapshot[id] = next;
+          if (!changedIds.includes(id)) changedIds.push(id);
+          keepUpdating = true;
+        }
+      });
+    }
   }
 
-  const changedIds = semesterIds.filter((id) => (snapshot[id] ?? 0) !== (progress[id] ?? 0));
   if (changedIds.length === 0) {
-    showToast(`Cuatrimestre ${cuatrimestre}: no hubo cambios posibles.`);
+    const targetLabel = STATE_LABELS[targetState];
+    showToast(`Cuatrimestre ${cuatrimestre}: no se pudo avanzar a ${targetLabel}.`);
     return;
   }
 
@@ -811,7 +864,20 @@ function handleSemesterBulkClick(cuatrimestre) {
   updateCareerProgress();
   updateMilestones();
 
-  showToast(`Cuatrimestre ${cuatrimestre}: ${changedIds.length}/${semesterIds.length} materias actualizadas.`);
+  if (blocked.length > 0) {
+    const sample = blocked
+      .slice(0, 2)
+      .map(({ id, blockers }) => `${MATERIAS_BY_ID[id]?.nombre || id} <- ${blockers[0]?.nombre || "dependiente"}`)
+      .join(" | ");
+    showToast(
+      `Cuatrimestre ${cuatrimestre}: ${changedIds.length}/${semesterIds.length} actualizadas. ` +
+      `${blocked.length} bloqueadas por dependencias (${sample}).`
+    );
+    return;
+  }
+
+  const targetLabel = STATE_LABELS[targetState];
+  showToast(`Cuatrimestre ${cuatrimestre}: ${changedIds.length}/${semesterIds.length} en ${targetLabel}.`);
 }
 
 function resetProgress() {
