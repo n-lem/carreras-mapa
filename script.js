@@ -40,6 +40,7 @@ let milestonesPanelHidden = false;
 let careerFabOpen = false;
 let blockedHighlightTimer = null;
 let toolsMenuOpen = false;
+let suppressAchievementNotifications = true;
 
 /** @type {Record<string, 0|1|2>} */
 let progress = {};
@@ -137,7 +138,7 @@ function configureAuthorFooter() {
   if (!link) return;
 
   const authorName = String(document.body?.dataset.authorName || "Nahuel").trim() || "Autor";
-  const authorGithub = String(document.body?.dataset.authorGithub || "https://github.com/nahuel").trim();
+  const authorGithub = String(document.body?.dataset.authorGithub || "https://github.com/n-lem").trim();
   link.textContent = authorName;
   link.href = authorGithub || "https://github.com";
 }
@@ -208,6 +209,64 @@ function hideOnboardingGuide(rememberDismiss = false) {
   const guide = document.getElementById("onboarding-guide");
   if (guide) guide.hidden = true;
   if (rememberDismiss) setOnboardingDismissed(true);
+}
+
+function achievementDomKey(key) {
+  return encodeURIComponent(String(key || ""));
+}
+
+function clearAchievementNotifications() {
+  const container = document.getElementById("achievement-stack");
+  if (!container) return;
+  container.innerHTML = "";
+}
+
+function removeAchievementNotification(key) {
+  const container = document.getElementById("achievement-stack");
+  if (!container) return;
+
+  const encoded = achievementDomKey(key);
+  const card = container.querySelector(`[data-achievement-key="${encoded}"]`);
+  if (card) card.remove();
+}
+
+function showAchievementNotification(milestone, progressInfo, key) {
+  const container = document.getElementById("achievement-stack");
+  if (!container) return;
+
+  const encoded = achievementDomKey(key);
+  if (container.querySelector(`[data-achievement-key="${encoded}"]`)) return;
+
+  const card = document.createElement("article");
+  card.className = "achievement-toast";
+  card.dataset.achievementKey = encoded;
+
+  const head = document.createElement("header");
+  head.className = "achievement-head";
+
+  const title = document.createElement("div");
+  title.className = "achievement-title";
+  const suffix = milestone.nombre ? `: ${milestone.nombre}` : "";
+  title.textContent = `${milestoneLabel(milestone)} alcanzado${suffix}`;
+  head.appendChild(title);
+
+  const close = document.createElement("button");
+  close.className = "achievement-close";
+  close.type = "button";
+  close.setAttribute("aria-label", "Cerrar notificación");
+  close.textContent = "×";
+  close.addEventListener("click", () => {
+    card.remove();
+  });
+  head.appendChild(close);
+
+  const body = document.createElement("div");
+  body.className = "achievement-body";
+  body.textContent = `Aprobadas ${progressInfo.approved}/${progressInfo.total} (${progressInfo.percentage}%).`;
+
+  card.appendChild(head);
+  card.appendChild(body);
+  container.appendChild(card);
 }
 
 function showToast(message) {
@@ -721,7 +780,8 @@ function updateCareerProgress() {
   container.appendChild(box);
 }
 
-function updateMilestones() {
+function updateMilestones(options = {}) {
+  const notify = options.notify ?? !suppressAchievementNotifications;
   const container = document.getElementById("milestones");
   const showButton = document.getElementById("btn-show-milestones");
   if (!container) return;
@@ -732,6 +792,7 @@ function updateMilestones() {
     container.innerHTML = "";
     if (showButton) showButton.hidden = true;
     milestoneStateByKey = {};
+    clearAchievementNotifications();
     return;
   }
 
@@ -768,6 +829,12 @@ function updateMilestones() {
     const achieved = nextStateByKey[key];
     const isNew = achieved && !milestoneStateByKey[key];
     const progressInfo = milestoneProgress(milestone);
+    if (notify && isNew) {
+      showAchievementNotification(milestone, progressInfo, key);
+    }
+    if (!achieved) {
+      removeAchievementNotification(key);
+    }
 
     const card = document.createElement("div");
     card.className = `milestone-float-card${achieved ? " achieved" : ""}${isNew ? " new-achievement" : ""}`;
@@ -832,6 +899,7 @@ function handleCardClick(id) {
 function resetProgress() {
   if (!confirm("¿Seguro que querés borrar todo el progreso guardado?")) return;
   progress = {};
+  clearAchievementNotifications();
   saveProgress();
   renderSemesters();
   drawArrows();
@@ -1086,6 +1154,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     setMaterias(materias);
     progress = loadProgress();
     milestoneStateByKey = {};
+    clearAchievementNotifications();
     if (normalizeProgressState()) saveProgress();
 
     setCareerTitle(ACTIVE_PLAN_META.carrera || plan.carrera);
@@ -1097,7 +1166,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     renderSemesters();
     drawArrows();
     updateCareerProgress();
-    updateMilestones();
+    updateMilestones({ notify: false });
 
     return true;
   } catch (error) {
@@ -1129,6 +1198,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     setMaterias(FALLBACK_MATERIAS);
     progress = loadProgress();
     milestoneStateByKey = {};
+    clearAchievementNotifications();
     if (normalizeProgressState()) saveProgress();
 
     setCareerTitle("Demo mínima");
@@ -1141,7 +1211,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     renderSemesters();
     drawArrows();
     updateCareerProgress();
-    updateMilestones();
+    updateMilestones({ notify: false });
     return false;
   }
 }
@@ -1161,7 +1231,12 @@ function bindUiEvents() {
   if (resetButton) resetButton.addEventListener("click", resetProgress);
 
   const themeButton = document.getElementById("btn-theme");
-  if (themeButton) themeButton.addEventListener("click", toggleTheme);
+  if (themeButton) {
+    themeButton.addEventListener("click", () => {
+      toggleTheme();
+      setToolsMenuOpen(false);
+    });
+  }
 
   const exportButton = document.getElementById("btn-export");
   if (exportButton) exportButton.addEventListener("click", exportProgress);
@@ -1201,19 +1276,20 @@ function bindUiEvents() {
   }
 
   const handleCareerChange = async (nextSlug) => {
-      const selected = PLAN_CATALOG.find((item) => item.slug === nextSlug);
-      if (!selected) return;
+    const selected = PLAN_CATALOG.find((item) => item.slug === nextSlug);
+    if (!selected) return;
 
-      const currentSlug = ACTIVE_PLAN?.slug || "";
-      if (nextSlug === currentSlug) {
-        setCareerFabOpen(false);
-        return;
-      }
+    const currentSlug = ACTIVE_PLAN?.slug || "";
+    if (nextSlug === currentSlug) {
+      setCareerFabOpen(false);
+      return;
+    }
 
-      const ok = await activatePlan(selected, false);
-      if (!ok) {
-        setCareerSelectionValue(currentSlug);
-      }
+    const ok = await activatePlan(selected, false);
+    if (!ok) {
+      setCareerSelectionValue(currentSlug);
+    }
+    setCareerFabOpen(false);
   };
 
   getCareerSelectElements().forEach((careerSelect) => {
@@ -1296,6 +1372,7 @@ async function init() {
 
   populateCareerSelect(PLAN_CATALOG, selectedPlan?.slug);
   await activatePlan(selectedPlan, true);
+  suppressAchievementNotifications = false;
 
   if (!isOnboardingDismissed()) {
     showOnboardingGuide();

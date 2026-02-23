@@ -15,7 +15,7 @@
   data-catalog="data/planes/catalog.json"
   data-plan="data/planes/licenciatura-en-gestion-de-tecnologias-de-la-informacion.materias.json"
   data-author-name="Nahuel"
-  data-author-github="https://github.com/nahuel"
+  data-author-github="https://github.com/n-lem"
 >
   <header>
     <div class="header-main">
@@ -35,16 +35,22 @@
           <span class="legend-item regular">Regular</span>
           <span class="legend-item approved">Aprobada</span>
         </div>
-        <button id="btn-theme" type="button" title="Cambiar tema">Modo oscuro</button>
         <div class="tools-wrap">
-          <button id="btn-tools" type="button" title="Abrir herramientas" aria-controls="tools-menu" aria-expanded="false">Herramientas</button>
+          <button id="btn-tools" type="button" title="Abrir herramientas" aria-controls="tools-menu" aria-expanded="false">
+            <span class="tools-icon" aria-hidden="true">⚙</span>
+            <span class="tools-label">Herramientas</span>
+          </button>
           <div id="tools-menu" class="tools-menu" hidden>
+            <button id="btn-theme" type="button" title="Cambiar tema">Modo oscuro</button>
             <button id="btn-export" type="button" title="Descargar progreso actual">Exportar progreso</button>
             <button id="btn-import" type="button" title="Importar progreso desde archivo">Importar progreso</button>
             <button id="btn-print" type="button" title="Imprimir plan">Imprimir (modo claro)</button>
           </div>
         </div>
-        <button id="btn-reset" title="Borrar todo el progreso guardado">Reiniciar progreso</button>
+        <button id="btn-reset" title="Borrar todo el progreso guardado">
+          <span aria-hidden="true">↺</span>
+          <span>Reiniciar progreso</span>
+        </button>
       </div>
     </div>
   </header>
@@ -60,6 +66,7 @@
 
   <!-- Toast notification -->
   <div id="toast" role="alert" aria-live="assertive"></div>
+  <section id="achievement-stack" class="achievement-stack" aria-live="polite"></section>
   <section id="milestones" class="milestone-floating" aria-live="polite" hidden></section>
   <button id="btn-show-milestones" class="milestone-show-btn" type="button" hidden>Ver hitos</button>
   <button
@@ -88,7 +95,7 @@
   <input id="input-import-progress" type="file" accept="application/json,.json" hidden />
   <footer class="site-footer">
     <span>Autor:</span>
-    <a id="author-link" href="https://github.com/nahuel" target="_blank" rel="noopener noreferrer">Nahuel</a>
+    <a id="author-link" href="https://github.com/n-lem" target="_blank" rel="noopener noreferrer">Nahuel</a>
   </footer>
 
   <script src="core.js" defer></script>

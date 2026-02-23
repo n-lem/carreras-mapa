@@ -222,7 +222,6 @@ body[data-theme="dark"] .career-picker select {
 .legend-item.regular  { background: var(--color-regular-bg);  border-color: var(--color-regular-border);  color: var(--color-regular-text); }
 .legend-item.approved { background: var(--color-approved-bg); border-color: var(--color-approved-border); color: var(--color-approved-text); }
 
-#btn-theme,
 #btn-tools,
 #btn-reset {
   border: none;
@@ -235,18 +234,12 @@ body[data-theme="dark"] .career-picker select {
   white-space: nowrap;
 }
 
-#btn-theme {
-  background: var(--btn-theme-bg);
-  color: var(--btn-theme-text);
-}
-
-#btn-theme:hover {
-  background: var(--btn-theme-bg-hover);
-}
-
 #btn-tools {
   background: rgba(148, 163, 184, .24);
   color: var(--header-text);
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
 }
 
 #btn-tools:hover { background: rgba(148, 163, 184, .38); }
@@ -254,9 +247,21 @@ body[data-theme="dark"] .career-picker select {
 #btn-reset {
   background: var(--btn-danger-bg);
   color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
 }
 
 #btn-reset:hover { background: var(--btn-danger-bg-hover); }
+
+.tools-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.tools-label {
+  line-height: 1;
+}
 
 /* ── Header tools ─────────────────────────────────────────── */
 .tools-wrap {
@@ -289,6 +294,18 @@ body[data-theme="dark"] .career-picker select {
   text-align: left;
   padding: .42rem .52rem;
   cursor: pointer;
+}
+
+.tools-menu #btn-theme {
+  border: none;
+  background: var(--btn-theme-bg);
+  color: var(--btn-theme-text);
+  text-align: center;
+}
+
+.tools-menu #btn-theme:hover {
+  background: var(--btn-theme-bg-hover);
+  filter: none;
 }
 
 .tools-menu button:hover { filter: brightness(.96); }
@@ -329,10 +346,10 @@ body[data-theme="dark"] .career-picker select {
 
 .career-progress-floating {
   position: fixed;
-  top: 5.4rem;
+  top: 6rem;
   right: 1rem;
   z-index: 9700;
-  width: min(340px, calc(100vw - 2rem));
+  width: min(360px, calc(100vw - 2rem));
 }
 
 .career-progress-box {
@@ -345,10 +362,9 @@ body[data-theme="dark"] .career-picker select {
 }
 
 .career-progress-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .6rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .2rem;
   margin-bottom: .45rem;
 }
 
@@ -358,9 +374,10 @@ body[data-theme="dark"] .career-picker select {
 }
 
 .career-progress-meta {
-  font-size: .75rem;
+  font-size: .78rem;
   font-weight: 700;
   opacity: .9;
+  overflow-wrap: anywhere;
 }
 
 .career-progress-track {
@@ -538,6 +555,66 @@ body[data-theme="dark"] .career-fab-panel select {
   display: none !important;
 }
 
+/* ── Floating achievements ─────────────────────────────────── */
+.achievement-stack {
+  position: fixed;
+  right: 1rem;
+  top: 10.2rem;
+  z-index: 9950;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  width: min(380px, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.achievement-toast {
+  pointer-events: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--milestone-ok-border);
+  background: var(--milestone-ok-bg);
+  color: var(--milestone-ok-text);
+  box-shadow: var(--shadow);
+  padding: .55rem .7rem;
+  animation: achievement-in .3s ease;
+}
+
+.achievement-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .12rem;
+}
+
+.achievement-title {
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.achievement-close {
+  border: 1px solid var(--milestone-ok-border);
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  width: 1.55rem;
+  height: 1.55rem;
+  font-size: .85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.achievement-body {
+  font-size: .76rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+@keyframes achievement-in {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 /* ── Diagram container ────────────────────────────────────── */
 main { padding: 2rem 1rem 6rem; }
 
@@ -554,6 +631,7 @@ main { padding: 2rem 1rem 6rem; }
   height: 100%;
   pointer-events: none;
   overflow: visible;
+  z-index: 2;
 }
 
 /* ── Semesters ────────────────────────────────────────────── */
@@ -575,6 +653,8 @@ main { padding: 2rem 1rem 6rem; }
   border-radius: calc(var(--radius) + 2px);
   background: rgba(148, 163, 184, .09);
   box-shadow: var(--shadow);
+  position: relative;
+  z-index: 1;
 }
 
 body[data-theme="dark"] .semester-block {
@@ -596,6 +676,8 @@ body[data-theme="dark"] .semester-block {
   cursor: pointer;
   user-select: none;
   transition: transform .15s ease, filter .15s ease;
+  position: relative;
+  z-index: 3;
 }
 
 .semester-label:hover {
@@ -642,6 +724,7 @@ body[data-theme="dark"] .semester-label {
   transition: transform .15s, box-shadow .15s, background .2s, border-color .2s, color .2s, opacity .2s;
   box-shadow: var(--shadow);
   position: relative;
+  z-index: 3;
 }
 
 .subject-card:hover:not(.locked) {
@@ -870,11 +953,22 @@ body[data-theme="dark"] .semester-label {
     gap: .55rem;
   }
 
-  #btn-theme,
   #btn-tools,
   #btn-reset {
     flex: 1 1 calc(50% - .35rem);
     text-align: center;
+  }
+
+  #btn-tools {
+    flex: 0 0 auto;
+    width: 2.4rem;
+    justify-content: center;
+    padding: .5rem .4rem;
+    gap: 0;
+  }
+
+  .tools-label {
+    display: none;
   }
 
   .tools-menu {
@@ -888,6 +982,14 @@ body[data-theme="dark"] .semester-label {
     right: .75rem;
     bottom: 4.45rem;
     max-width: none;
+  }
+
+  .achievement-stack {
+    right: .75rem;
+    left: .75rem;
+    top: auto;
+    bottom: 11.8rem;
+    width: auto;
   }
 
   .milestone-show-btn {
@@ -917,7 +1019,7 @@ body[data-theme="dark"] .semester-label {
   }
 
   .career-progress-floating {
-    bottom: 7.35rem;
+    bottom: 8rem;
     left: .75rem;
     right: .75rem;
     width: auto;
@@ -957,14 +1059,17 @@ body[data-theme="dark"] .semester-label {
     flex-wrap: wrap;
   }
 
-  #btn-theme,
   #btn-tools,
   #btn-reset {
-    flex-basis: 100%;
+    flex-basis: auto;
   }
 
   .milestone-floating {
     bottom: 4.25rem;
+  }
+
+  #btn-reset {
+    flex: 1 1 min(220px, 100%);
   }
 
   .milestone-show-btn,
@@ -1004,9 +1109,7 @@ body[data-theme="dark"] .semester-label {
   }
 
   .career-progress-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: .3rem;
+    gap: .18rem;
   }
 }
 
@@ -1039,6 +1142,7 @@ body[data-theme="dark"] .semester-label {
   .career-fab,
   .career-fab-panel,
   .career-progress-floating,
+  .achievement-stack,
   .onboarding-guide,
   #toast,
   .site-footer {
