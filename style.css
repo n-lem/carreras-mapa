@@ -125,8 +125,9 @@ header {
 
 .title-row {
   display: flex;
-  align-items: baseline;
-  gap: .8rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .24rem;
   min-width: 0;
 }
 
@@ -150,6 +151,7 @@ header h1 {
   font-weight: 600;
   color: var(--header-text);
   opacity: .95;
+  min-height: 1.25rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -253,6 +255,7 @@ body[data-theme="dark"] .career-picker select {
   max-width: 960px;
   margin: .8rem auto 0;
   padding: 0 1rem;
+  min-height: 4.4rem;
 }
 
 .career-progress-box {
@@ -393,6 +396,7 @@ body[data-theme="dark"] .career-picker select {
 }
 
 .career-fab {
+  display: none;
   position: fixed;
   left: 1rem;
   bottom: 1rem;
@@ -414,6 +418,7 @@ body[data-theme="dark"] .career-picker select {
 }
 
 .career-fab-panel {
+  display: none;
   position: fixed;
   left: 1rem;
   bottom: 3.65rem;
@@ -449,6 +454,11 @@ body[data-theme="dark"] .career-fab-panel select {
   border-color: #475569;
   background: #0f172a;
   color: #e2e8f0;
+}
+
+.career-fab[hidden],
+.career-fab-panel[hidden] {
+  display: none !important;
 }
 
 /* ── Diagram container ────────────────────────────────────── */
@@ -710,11 +720,14 @@ body[data-theme="dark"] .semester-label {
   }
 
   .career-fab {
+    display: inline-flex;
+    align-items: center;
     left: .75rem;
     bottom: .75rem;
   }
 
   .career-fab-panel {
+    display: block;
     left: .75rem;
     right: .75rem;
     width: auto;

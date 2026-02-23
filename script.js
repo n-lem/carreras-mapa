@@ -119,6 +119,19 @@ function setCareerSelectionValue(slug) {
   });
 }
 
+function ensureDemoOptionInSelects() {
+  const label = "Demo mínima (sin plan cargado)";
+  getCareerSelectElements().forEach((select) => {
+    let option = [...select.options].find((item) => item.value === "demo");
+    if (!option) {
+      option = document.createElement("option");
+      option.value = "demo";
+      select.prepend(option);
+    }
+    option.textContent = label;
+  });
+}
+
 function setCareerFabOpen(open) {
   const panel = document.getElementById("career-fab-panel");
   const button = document.getElementById("btn-career-fab");
@@ -923,6 +936,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     setCareerTitle("Demo mínima");
     setSubtitle("No se pudo cargar el catálogo/plan. Se muestra la demo mínima.");
     showToast("Error cargando archivos JSON. Revisá data/planes/catalog.json.");
+    ensureDemoOptionInSelects();
     setCareerSelectionValue("demo");
     setCareerFabOpen(false);
 
