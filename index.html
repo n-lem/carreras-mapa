@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapa de Correlatividades – UNPAZ</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Mapa de Correlatividades</h1>
+    <p class="subtitle">Hacé clic en cada materia para registrar tu progreso</p>
+    <div class="legend">
+      <span class="legend-item pending">Pendiente</span>
+      <span class="legend-item regular">Regular</span>
+      <span class="legend-item approved">Aprobada</span>
+    </div>
+    <button id="btn-reset" title="Borrar todo el progreso guardado">Reiniciar progreso</button>
+  </header>
+
+  <main>
+    <div id="diagram-container">
+      <svg id="arrows-svg" aria-hidden="true"></svg>
+      <div id="semesters"></div>
+    </div>
+  </main>
+
+  <!-- Toast notification -->
+  <div id="toast" role="alert" aria-live="assertive"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
