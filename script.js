@@ -11,6 +11,11 @@
 const DEFAULT_PLAN_URL = "data/planes/gestion-de-tecnologias-de-la-informacion.materias.json";
 const STATE_LABELS = ["Pendiente", "Regular", "Aprobada"];
 const STATE_CLASSES = ["", "state-1", "state-2"];
+const THEME_KEY = "unpaz_theme";
+const EDGE_COLORS = [
+  "#3b82f6", "#06b6d4", "#10b981", "#84cc16", "#eab308", "#f59e0b",
+  "#f97316", "#ef4444", "#ec4899", "#8b5cf6", "#6366f1", "#14b8a6"
+];
 const FALLBACK_MATERIAS = [
   { id: "6001", nombre: "Análisis Matemático I", cuatrimestre: 1, correlativas: [] },
   { id: "6006", nombre: "Análisis Matemático II", cuatrimestre: 2, correlativas: ["6001"] }
@@ -213,17 +218,48 @@ function setSubtitle(message) {
   if (subtitle) subtitle.textContent = message;
 }
 
+function resolvePreferredTheme() {
+  try {
+    const persisted = localStorage.getItem(THEME_KEY);
+    if (persisted === "dark" || persisted === "light") return persisted;
+  } catch {
+    // noop
+  }
+
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return prefersDark ? "dark" : "light";
+}
+
+function setTheme(theme) {
+  const normalized = theme === "dark" ? "dark" : "light";
+  document.body.dataset.theme = normalized;
+  try {
+    localStorage.setItem(THEME_KEY, normalized);
+  } catch {
+    // noop
+  }
+  updateThemeButtonLabel(normalized);
+}
+
+function updateThemeButtonLabel(theme) {
+  const themeButton = document.getElementById("btn-theme");
+  if (!themeButton) return;
+  const isDark = theme === "dark";
+  themeButton.textContent = isDark ? "Modo claro" : "Modo oscuro";
+  themeButton.setAttribute("aria-label", isDark ? "Activar modo claro" : "Activar modo oscuro");
+}
+
+function toggleTheme() {
+  const current = document.body.dataset.theme === "dark" ? "dark" : "light";
+  setTheme(current === "dark" ? "light" : "dark");
+}
+
 function buildDefs(svg) {
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-  const markers = [
-    { id: "arrowhead-default", color: "#cbd5e1" },
-    { id: "arrowhead-regular", color: "#eab308" },
-    { id: "arrowhead-approved", color: "#22c55e" }
-  ];
 
-  markers.forEach(({ id, color }) => {
+  EDGE_COLORS.forEach((color, index) => {
     const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
-    marker.setAttribute("id", id);
+    marker.setAttribute("id", `arrowhead-${index}`);
     marker.setAttribute("markerWidth", "8");
     marker.setAttribute("markerHeight", "8");
     marker.setAttribute("refX", "6");
@@ -264,6 +300,11 @@ function arrowClass(fromId, toId) {
   return "arrow-line";
 }
 
+function edgeColorIndexForMateria(materiaId) {
+  const cuatrimestre = MATERIAS_BY_ID[materiaId]?.cuatrimestre ?? 1;
+  return (Math.max(1, cuatrimestre) - 1) % EDGE_COLORS.length;
+}
+
 function drawArrows() {
   const svg = document.getElementById("arrows-svg");
   if (!svg) return;
@@ -283,8 +324,11 @@ function drawArrows() {
       const midY = (y1 + y2) / 2;
 
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const colorIndex = edgeColorIndexForMateria(materia.id);
       path.setAttribute("d", `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`);
       path.setAttribute("class", arrowClass(correlativaId, materia.id));
+      path.style.setProperty("--edge-color", EDGE_COLORS[colorIndex]);
+      path.setAttribute("marker-end", `url(#arrowhead-${colorIndex})`);
       svg.appendChild(path);
     });
   });
@@ -451,9 +495,14 @@ function bindUiEvents() {
 
   const resetButton = document.getElementById("btn-reset");
   if (resetButton) resetButton.addEventListener("click", resetProgress);
+
+  const themeButton = document.getElementById("btn-theme");
+  if (themeButton) themeButton.addEventListener("click", toggleTheme);
 }
 
 async function init() {
+  setTheme(resolvePreferredTheme());
+
   const svg = document.getElementById("arrows-svg");
   if (svg) buildDefs(svg);
   bindUiEvents();

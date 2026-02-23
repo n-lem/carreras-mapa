@@ -2,42 +2,89 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --color-pending-bg:   #e2e8f0;
+  --bg: #f8fafc;
+  --text: #1e293b;
+  --header-bg: #1e293b;
+  --header-text: #f8fafc;
+  --subtitle: #94a3b8;
+  --semester-label: #64748b;
+  --toast-bg: #1e293b;
+  --toast-text: #f8fafc;
+
+  --color-pending-bg: #e2e8f0;
   --color-pending-border: #94a3b8;
   --color-pending-text: #334155;
 
-  --color-regular-bg:   #fef9c3;
+  --color-regular-bg: #fef9c3;
   --color-regular-border: #eab308;
   --color-regular-text: #713f12;
 
-  --color-approved-bg:  #dcfce7;
+  --color-approved-bg: #dcfce7;
   --color-approved-border: #22c55e;
   --color-approved-text: #14532d;
 
-  --color-locked-bg:    #f1f5f9;
+  --color-locked-bg: #f1f5f9;
   --color-locked-border: #cbd5e1;
-  --color-locked-text:  #94a3b8;
+  --color-locked-text: #94a3b8;
 
-  --arrow-default:  #cbd5e1;
-  --arrow-regular:  #eab308;
-  --arrow-approved: #22c55e;
+  --btn-theme-bg: #334155;
+  --btn-theme-bg-hover: #475569;
+  --btn-theme-text: #f8fafc;
+  --btn-danger-bg: #ef4444;
+  --btn-danger-bg-hover: #dc2626;
 
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --radius: 8px;
-  --shadow: 0 2px 8px rgba(0,0,0,.08);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+body[data-theme="dark"] {
+  --bg: #0f172a;
+  --text: #e2e8f0;
+  --header-bg: #020617;
+  --header-text: #f8fafc;
+  --subtitle: #94a3b8;
+  --semester-label: #94a3b8;
+  --toast-bg: #020617;
+  --toast-text: #e2e8f0;
+
+  --color-pending-bg: #1e293b;
+  --color-pending-border: #475569;
+  --color-pending-text: #cbd5e1;
+
+  --color-regular-bg: #3f3208;
+  --color-regular-border: #eab308;
+  --color-regular-text: #fde68a;
+
+  --color-approved-bg: #0f2f1f;
+  --color-approved-border: #22c55e;
+  --color-approved-text: #bbf7d0;
+
+  --color-locked-bg: #111827;
+  --color-locked-border: #374151;
+  --color-locked-text: #6b7280;
+
+  --btn-theme-bg: #f8fafc;
+  --btn-theme-bg-hover: #e2e8f0;
+  --btn-theme-text: #0f172a;
+  --btn-danger-bg: #b91c1c;
+  --btn-danger-bg-hover: #991b1b;
+
+  --shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
 }
 
 body {
   font-family: var(--font);
-  background: #f8fafc;
-  color: #1e293b;
+  background: var(--bg);
+  color: var(--text);
   min-height: 100vh;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
 /* ── Header ───────────────────────────────────────────────── */
 header {
-  background: #1e293b;
-  color: #f8fafc;
+  background: var(--header-bg);
+  color: var(--header-text);
   padding: 1.25rem 2rem;
   display: flex;
   flex-wrap: wrap;
@@ -49,7 +96,7 @@ header h1 { font-size: 1.4rem; font-weight: 700; }
 
 .subtitle {
   font-size: .85rem;
-  color: #94a3b8;
+  color: var(--subtitle);
   flex: 1 1 auto;
 }
 
@@ -71,18 +118,32 @@ header h1 { font-size: 1.4rem; font-weight: 700; }
 .legend-item.regular  { background: var(--color-regular-bg);  border-color: var(--color-regular-border);  color: var(--color-regular-text); }
 .legend-item.approved { background: var(--color-approved-bg); border-color: var(--color-approved-border); color: var(--color-approved-text); }
 
+#btn-theme,
 #btn-reset {
-  background: #ef4444;
-  color: #fff;
   border: none;
-  padding: .4rem 1rem;
+  padding: .45rem .95rem;
   border-radius: var(--radius);
   font-size: .8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background .2s;
+  transition: background .2s, color .2s;
 }
-#btn-reset:hover { background: #dc2626; }
+
+#btn-theme {
+  background: var(--btn-theme-bg);
+  color: var(--btn-theme-text);
+}
+
+#btn-theme:hover {
+  background: var(--btn-theme-bg-hover);
+}
+
+#btn-reset {
+  background: var(--btn-danger-bg);
+  color: #fff;
+}
+
+#btn-reset:hover { background: var(--btn-danger-bg-hover); }
 
 /* ── Diagram container ────────────────────────────────────── */
 main { padding: 2rem 1rem 4rem; }
@@ -122,8 +183,8 @@ main { padding: 2rem 1rem 4rem; }
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .08em;
-  color: #64748b;
-  border-left: 3px solid #64748b;
+  color: var(--semester-label);
+  border-left: 3px solid var(--semester-label);
   padding-left: .5rem;
 }
 
@@ -151,7 +212,7 @@ main { padding: 2rem 1rem 4rem; }
 
 .subject-card:hover:not(.locked) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(0,0,0,.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
 }
 
 .subject-card.locked {
@@ -159,7 +220,7 @@ main { padding: 2rem 1rem 4rem; }
   border-color: var(--color-locked-border);
   color: var(--color-locked-text);
   cursor: not-allowed;
-  opacity: .7;
+  opacity: .75;
 }
 
 .subject-card.state-1 {
@@ -200,25 +261,23 @@ main { padding: 2rem 1rem 4rem; }
 /* ── SVG Arrows ───────────────────────────────────────────── */
 .arrow-line {
   fill: none;
-  stroke: var(--arrow-default);
+  stroke: var(--edge-color, #94a3b8);
   stroke-width: 2;
+  stroke-opacity: .3;
   stroke-dasharray: 5 4;
-  transition: stroke .3s, stroke-width .3s;
-  marker-end: url(#arrowhead-default);
+  transition: stroke-width .3s, stroke-opacity .3s;
 }
 
 .arrow-line.state-regular {
-  stroke: var(--arrow-regular);
-  stroke-width: 2.5;
+  stroke-width: 2.4;
+  stroke-opacity: .75;
   stroke-dasharray: none;
-  marker-end: url(#arrowhead-regular);
 }
 
 .arrow-line.state-approved {
-  stroke: var(--arrow-approved);
-  stroke-width: 2.5;
+  stroke-width: 3;
+  stroke-opacity: 1;
   stroke-dasharray: none;
-  marker-end: url(#arrowhead-approved);
 }
 
 /* ── Toast ────────────────────────────────────────────────── */
@@ -227,13 +286,13 @@ main { padding: 2rem 1rem 4rem; }
   bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%) translateY(100px);
-  background: #1e293b;
-  color: #f8fafc;
+  background: var(--toast-bg);
+  color: var(--toast-text);
   padding: .7rem 1.4rem;
   border-radius: 999px;
   font-size: .85rem;
   font-weight: 500;
-  box-shadow: 0 4px 20px rgba(0,0,0,.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, .25);
   transition: transform .3s ease, opacity .3s ease;
   opacity: 0;
   pointer-events: none;
@@ -248,7 +307,18 @@ main { padding: 2rem 1rem 4rem; }
 }
 
 /* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  header {
+    padding: 1rem;
+    gap: .65rem;
+  }
+
+  .subtitle {
+    flex-basis: 100%;
+    order: 5;
+  }
+}
+
 @media (max-width: 480px) {
-  header { padding: 1rem; }
   .subject-card { max-width: 100%; }
 }
