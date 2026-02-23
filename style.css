@@ -1,6 +1,11 @@
 /* ── Reset & base ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+.milestone-floating[hidden],
+.milestone-show-btn[hidden] {
+  display: none !important;
+}
+
 :root {
   --bg: #f8fafc;
   --text: #1e293b;
