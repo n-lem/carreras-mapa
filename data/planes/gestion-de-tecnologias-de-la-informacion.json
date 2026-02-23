@@ -1,0 +1,411 @@
+{
+  "carrera": "Gestión de Tecnologías de la Información",
+  "fuente_pdf": "C:\\Users\\nahuel\\Downloads\\2021-11-23 Planesdeestudioa4LGTI_1.pdf",
+  "generado_en_utc": "2026-02-23T18:32:00.429318+00:00",
+  "materias": [
+    {
+      "id": "6001",
+      "nombre": "Análisis Matemático I",
+      "cuatrimestre": 1,
+      "anio": 1,
+      "correlativas": []
+    },
+    {
+      "id": "6002",
+      "nombre": "Arquitectura de Computadoras I",
+      "cuatrimestre": 1,
+      "anio": 1,
+      "correlativas": []
+    },
+    {
+      "id": "6003",
+      "nombre": "Introducción a la Programación",
+      "cuatrimestre": 1,
+      "anio": 1,
+      "correlativas": []
+    },
+    {
+      "id": "6004",
+      "nombre": "Estructuras Discretas",
+      "cuatrimestre": 1,
+      "anio": 1,
+      "correlativas": []
+    },
+    {
+      "id": "6005",
+      "nombre": "Ciencia, Tecnología y Sociedad",
+      "cuatrimestre": 1,
+      "anio": 1,
+      "correlativas": []
+    },
+    {
+      "id": "6006",
+      "nombre": "Análisis Matemático II",
+      "cuatrimestre": 2,
+      "anio": 1,
+      "correlativas": [
+        "6001"
+      ]
+    },
+    {
+      "id": "6007",
+      "nombre": "Álgebra y Geometría Analítica",
+      "cuatrimestre": 2,
+      "anio": 1,
+      "correlativas": [
+        "6001"
+      ]
+    },
+    {
+      "id": "6008",
+      "nombre": "Algoritmos y Programación",
+      "cuatrimestre": 2,
+      "anio": 1,
+      "correlativas": [
+        "6003",
+        "6004"
+      ]
+    },
+    {
+      "id": "6009",
+      "nombre": "Arquitectura de Computadoras II",
+      "cuatrimestre": 2,
+      "anio": 1,
+      "correlativas": [
+        "6002",
+        "6005"
+      ]
+    },
+    {
+      "id": "6010",
+      "nombre": "Inglés I",
+      "cuatrimestre": 2,
+      "anio": 1,
+      "correlativas": [
+        "6005"
+      ]
+    },
+    {
+      "id": "6011",
+      "nombre": "Sistemas Operativos I",
+      "cuatrimestre": 3,
+      "anio": 2,
+      "correlativas": [
+        "6002",
+        "6010"
+      ]
+    },
+    {
+      "id": "6012",
+      "nombre": "Economía General",
+      "cuatrimestre": 3,
+      "anio": 2,
+      "correlativas": [
+        "6001"
+      ]
+    },
+    {
+      "id": "6013",
+      "nombre": "Inglés II",
+      "cuatrimestre": 3,
+      "anio": 2,
+      "correlativas": [
+        "6010"
+      ]
+    },
+    {
+      "id": "6014",
+      "nombre": "Ingeniería de Software I",
+      "cuatrimestre": 3,
+      "anio": 2,
+      "correlativas": [
+        "6003",
+        "6004",
+        "6005"
+      ]
+    },
+    {
+      "id": "6015",
+      "nombre": "Paradigmas de Programación",
+      "cuatrimestre": 3,
+      "anio": 2,
+      "correlativas": [
+        "6003"
+      ]
+    },
+    {
+      "id": "6016",
+      "nombre": "Sistemas Operativos II",
+      "cuatrimestre": 4,
+      "anio": 2,
+      "correlativas": [
+        "6011"
+      ]
+    },
+    {
+      "id": "6017",
+      "nombre": "Laboratorio de Programación y Lenguajes",
+      "cuatrimestre": 4,
+      "anio": 2,
+      "correlativas": [
+        "6015"
+      ]
+    },
+    {
+      "id": "6018",
+      "nombre": "Programación Orientada a Objetos",
+      "cuatrimestre": 4,
+      "anio": 2,
+      "correlativas": [
+        "6008"
+      ]
+    },
+    {
+      "id": "6019",
+      "nombre": "Base de Datos I",
+      "cuatrimestre": 4,
+      "anio": 2,
+      "correlativas": [
+        "6004",
+        "6007"
+      ]
+    },
+    {
+      "id": "6020",
+      "nombre": "Administración I",
+      "cuatrimestre": 4,
+      "anio": 2,
+      "correlativas": []
+    },
+    {
+      "id": "6021",
+      "nombre": "Probabilidad y Estadísticas",
+      "cuatrimestre": 5,
+      "anio": 3,
+      "correlativas": [
+        "6006",
+        "6007"
+      ]
+    },
+    {
+      "id": "6022",
+      "nombre": "Comunicaciones y Redes",
+      "cuatrimestre": 5,
+      "anio": 3,
+      "correlativas": [
+        "6004",
+        "6011"
+      ]
+    },
+    {
+      "id": "6023",
+      "nombre": "Ingeniería de Software II",
+      "cuatrimestre": 5,
+      "anio": 3,
+      "correlativas": [
+        "6014"
+      ]
+    },
+    {
+      "id": "6024",
+      "nombre": "Administración II",
+      "cuatrimestre": 5,
+      "anio": 3,
+      "correlativas": [
+        "6020"
+      ]
+    },
+    {
+      "id": "6025",
+      "nombre": "Laboratorio de Software",
+      "cuatrimestre": 6,
+      "anio": 3,
+      "correlativas": [
+        "6014",
+        "6018",
+        "6019"
+      ]
+    },
+    {
+      "id": "6026",
+      "nombre": "Base de Datos II",
+      "cuatrimestre": 6,
+      "anio": 3,
+      "correlativas": [
+        "6019"
+      ]
+    },
+    {
+      "id": "6027",
+      "nombre": "Contabilidad I",
+      "cuatrimestre": 6,
+      "anio": 3,
+      "correlativas": [
+        "6020"
+      ]
+    },
+    {
+      "id": "6028",
+      "nombre": "Trabajo de Campo",
+      "cuatrimestre": 6,
+      "anio": 3,
+      "correlativas": [
+        "6018",
+        "6022",
+        "6023"
+      ]
+    },
+    {
+      "id": "6029",
+      "nombre": "Investigación Operativa",
+      "cuatrimestre": 7,
+      "anio": 4,
+      "correlativas": [
+        "6021"
+      ]
+    },
+    {
+      "id": "6030",
+      "nombre": "Arquitectura Web",
+      "cuatrimestre": 7,
+      "anio": 4,
+      "correlativas": [
+        "6022"
+      ]
+    },
+    {
+      "id": "6031",
+      "nombre": "Seguridad Informática",
+      "cuatrimestre": 7,
+      "anio": 4,
+      "correlativas": [
+        "6017",
+        "6018",
+        "6022",
+        "6023"
+      ]
+    },
+    {
+      "id": "6032",
+      "nombre": "Administración de Recursos Humanos",
+      "cuatrimestre": 7,
+      "anio": 4,
+      "correlativas": [
+        "6020",
+        "6024"
+      ]
+    },
+    {
+      "id": "6033",
+      "nombre": "Contabilidad Avanzada",
+      "cuatrimestre": 7,
+      "anio": 4,
+      "correlativas": [
+        "6027"
+      ]
+    },
+    {
+      "id": "6034",
+      "nombre": "Sistemas Inteligentes",
+      "cuatrimestre": 8,
+      "anio": 4,
+      "correlativas": [
+        "6021",
+        "6023"
+      ]
+    },
+    {
+      "id": "6035",
+      "nombre": "Gestión de la Tecnología",
+      "cuatrimestre": 8,
+      "anio": 4,
+      "correlativas": [
+        "6022",
+        "6023"
+      ]
+    },
+    {
+      "id": "6036",
+      "nombre": "Comercialización",
+      "cuatrimestre": 8,
+      "anio": 4,
+      "correlativas": [
+        "6020",
+        "6024"
+      ]
+    },
+    {
+      "id": "6037",
+      "nombre": "Planificación Financiera y Proyecto de Inversión",
+      "cuatrimestre": 8,
+      "anio": 4,
+      "correlativas": [
+        "6006",
+        "6012",
+        "6020",
+        "6027"
+      ]
+    },
+    {
+      "id": "6038",
+      "nombre": "Optativa I",
+      "cuatrimestre": 8,
+      "anio": 4,
+      "correlativas": []
+    },
+    {
+      "id": "6039",
+      "nombre": "Gestión de Proyectos",
+      "cuatrimestre": 9,
+      "anio": 5,
+      "correlativas": [
+        "6012",
+        "6021"
+      ]
+    },
+    {
+      "id": "6040",
+      "nombre": "Inteligencia de los Negocios",
+      "cuatrimestre": 9,
+      "anio": 5,
+      "correlativas": [
+        "6023",
+        "6029"
+      ]
+    },
+    {
+      "id": "6041",
+      "nombre": "Optativa II",
+      "cuatrimestre": 9,
+      "anio": 5,
+      "correlativas": [
+        "6023",
+        "6025",
+        "6026"
+      ]
+    },
+    {
+      "id": "6042",
+      "nombre": "Dirección Estratégica",
+      "cuatrimestre": 9,
+      "anio": 5,
+      "correlativas": [
+        "6036"
+      ]
+    },
+    {
+      "id": "6043",
+      "nombre": "Trabajo Final de Grado",
+      "cuatrimestre": 9,
+      "anio": 5,
+      "correlativas": []
+    }
+  ],
+  "hitos": [
+    {
+      "tipo": "titulo_intermedio",
+      "nombre": "Analísta de Sistemas (1920 hs)",
+      "anio_estimado": 3
+    }
+  ]
+}
