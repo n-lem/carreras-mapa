@@ -37,7 +37,8 @@ except Exception:  # pragma: no cover
     PdfReader = None
 
 
-CODE_RE = re.compile(r"\b\d{4}\b")
+# Supports both legacy 4-digit codes (e.g. 6001) and newer 2-digit codes (e.g. 01).
+CODE_RE = re.compile(r"\b\d{1,4}\b")
 SPACE_RE = re.compile(r"\s+")
 MAX_CONTINUATION_DISTANCE = 15.0
 
@@ -214,6 +215,12 @@ def unique_in_order(items: Iterable[str]) -> list[str]:
 
 def clean_name(raw: str) -> str:
     cleaned = norm_text(raw)
+    words = cleaned.split()
+    # Some PDFs repeat the same cell text twice across page boundaries.
+    if len(words) >= 4 and len(words) % 2 == 0:
+        half = len(words) // 2
+        if words[:half] == words[half:]:
+            cleaned = " ".join(words[:half])
     cleaned = cleaned.strip("-,:; ")
     return cleaned
 
@@ -241,15 +248,26 @@ def extract_full_text(pdf_path: Path) -> str:
 def extract_career_name(full_text: str, fallback: str) -> str:
     text = unicodedata.normalize("NFKC", full_text or "")
     # Keep line breaks to avoid swallowing extra paragraphs.
-    match = re.search(r"Licenciatura en\s*([^\n\r]+)", text, flags=re.IGNORECASE)
-    if match:
-        return clean_name(f"Licenciatura en {match.group(1)}")
+    patterns = [
+        r"Carrera de grado/\s*[\r\n]+\s*([^\n\r]+)",
+        r"(Licenciatura en\s*[^\n\r]+)",
+        r"(Ingenier[íi]a en\s*[^\n\r]+)",
+        r"Título de grado:\s*([^\n\r]+)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return clean_name(match.group(1))
     return fallback
 
 
 def extract_intermediate_title(full_text: str) -> str | None:
     text = unicodedata.normalize("NFKC", full_text or "")
-    matches = re.findall(r"Anal[ií]sta(?:/a)? de Sistemas\s*\([^)]+\)", text, flags=re.IGNORECASE)
+    matches = re.findall(
+        r"(?:Anal[ií]sta(?:/a)? de Sistemas|T[eé]cnic[ao]/o Universitari[ao]/o en [^\n\r()]+)\s*\([^)]+\)",
+        text,
+        flags=re.IGNORECASE,
+    )
     if matches:
         # Prefer variants that include workload (hs), fallback to last match.
         for candidate in reversed(matches):
@@ -261,14 +279,15 @@ def extract_intermediate_title(full_text: str) -> str | None:
 
 def extract_final_title(full_text: str) -> str | None:
     text = unicodedata.normalize("NFKC", full_text or "")
-    match = re.search(
-        r"Licenciada/o en\s*([^\n\r(]+)\s*\((\d+\s*hs)\)",
-        text,
-        flags=re.IGNORECASE,
-    )
-    if not match:
-        return None
-    return clean_name(f"Licenciada/o en {match.group(1)} ({match.group(2)})")
+    patterns = [
+        r"((?:Licenciada/o|Ingeniera/o)\s+en\s*[^\n\r()]+\(\d+\s*hs\))",
+        r"Título de grado:\s*([^\n\r]+)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return clean_name(match.group(1))
+    return None
 
 
 def parse_courses(rows: list[Row], split_map: dict[int, int]) -> list[dict]:
