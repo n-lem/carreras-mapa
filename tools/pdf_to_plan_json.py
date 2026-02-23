@@ -165,7 +165,9 @@ def get_left_code(row: Row) -> str | None:
 
 def has_header_marker(row: Row) -> bool:
     normalized = unicodedata.normalize("NFKD", row.text).encode("ascii", "ignore").decode("ascii").lower()
-    return "codigo" in normalized and "asignatura" in normalized
+    # Some PDFs lose one header token (e.g. "Asignatura"), so we accept
+    # "codigo + correlatividad" as a valid table header too.
+    return "codigo" in normalized and ("asignatura" in normalized or "correlatividad" in normalized)
 
 
 def name_tokens(row: Row) -> list[str]:
@@ -390,6 +392,38 @@ def parse_courses(rows: list[Row], split_map: dict[int, int]) -> list[dict]:
             )
 
     result.sort(key=lambda materia: int(materia["id"]))
+
+    # Normalize correlativa IDs against extracted subject IDs to avoid
+    # impossible locks due to OCR differences like "6" vs "06".
+    id_set = {item["id"] for item in result}
+    numeric_to_id: dict[str, str] = {}
+    for code in sorted(id_set, key=lambda value: (len(value), value)):
+        if code.isdigit():
+            numeric_to_id.setdefault(str(int(code)), code)
+    pad_lengths = sorted({len(code) for code in id_set if code.isdigit()})
+
+    for materia in result:
+        normalized_corr: list[str] = []
+        for correlativa in materia["correlativas"]:
+            candidate = correlativa
+            if candidate not in id_set and candidate.isdigit():
+                numeric_key = str(int(candidate))
+                mapped = numeric_to_id.get(numeric_key)
+                if mapped:
+                    candidate = mapped
+                else:
+                    for width in pad_lengths:
+                        padded = numeric_key.zfill(width)
+                        if padded in id_set:
+                            candidate = padded
+                            break
+
+            if candidate in id_set:
+                if candidate != materia["id"] and candidate not in normalized_corr:
+                    normalized_corr.append(candidate)
+
+        materia["correlativas"] = normalized_corr
+
     return result
 
 
