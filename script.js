@@ -31,6 +31,7 @@ let ACTIVE_PLAN_META = null;
 let MATERIAS = [];
 let MATERIAS_BY_ID = {};
 let DEPENDENTS = {};
+let milestoneStateByKey = {};
 
 /** @type {Record<string, 0|1|2>} */
 let progress = {};
@@ -499,6 +500,11 @@ function milestoneLabel(milestone) {
   return milestone.tipo === "titulo_intermedio" ? "Título intermedio" : "Título final";
 }
 
+function milestoneKey(milestone) {
+  const criterio = milestone?.criterio ? JSON.stringify(milestone.criterio) : "";
+  return `${milestone?.tipo || "hito"}|${milestone?.nombre || ""}|${criterio}`;
+}
+
 function updateMilestones() {
   const container = document.getElementById("milestones");
   if (!container) return;
@@ -507,24 +513,42 @@ function updateMilestones() {
   if (milestones.length === 0) {
     container.hidden = true;
     container.innerHTML = "";
+    milestoneStateByKey = {};
     return;
   }
 
-  container.hidden = false;
-  container.innerHTML = "";
+  const nextStateByKey = {};
+  const achievedMilestones = [];
 
   milestones.forEach((milestone) => {
+    const key = milestoneKey(milestone);
     const achieved = isMilestoneAchieved(milestone);
-
-    const badge = document.createElement("span");
-    badge.className = `milestone-badge${achieved ? " achieved" : ""}`;
-
-    const stateText = achieved ? "alcanzado" : "pendiente";
-    const base = `${achieved ? "✓" : "•"} ${milestoneLabel(milestone)} ${stateText}`;
-    badge.textContent = milestone.nombre ? `${base}: ${milestone.nombre}` : base;
-
-    container.appendChild(badge);
+    nextStateByKey[key] = achieved;
+    if (achieved) {
+      achievedMilestones.push({ milestone, key, isNew: !milestoneStateByKey[key] });
+    }
   });
+
+  if (achievedMilestones.length === 0) {
+    container.hidden = true;
+    container.innerHTML = "";
+    milestoneStateByKey = nextStateByKey;
+    return;
+  }
+
+  container.innerHTML = "";
+  container.hidden = false;
+
+  achievedMilestones.forEach(({ milestone, isNew }) => {
+    const card = document.createElement("div");
+    card.className = `milestone-float-card achieved${isNew ? " new-achievement" : ""}`;
+    const title = milestoneLabel(milestone);
+    const suffix = milestone.nombre ? `: ${milestone.nombre}` : "";
+    card.textContent = `✓ ${title} alcanzado${suffix}`;
+    container.appendChild(card);
+  });
+
+  milestoneStateByKey = nextStateByKey;
 }
 
 function handleCardClick(id) {
@@ -707,6 +731,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     setStorageKeyForSlug(plan.slug);
     setMaterias(materias);
     progress = loadProgress();
+    milestoneStateByKey = {};
     if (normalizeProgressState()) saveProgress();
 
     setCareerTitle(ACTIVE_PLAN_META.carrera || plan.carrera);
@@ -745,6 +770,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     setStorageKeyForSlug("demo");
     setMaterias(FALLBACK_MATERIAS);
     progress = loadProgress();
+    milestoneStateByKey = {};
     if (normalizeProgressState()) saveProgress();
 
     setCareerTitle("Demo mínima");
