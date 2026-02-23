@@ -1077,6 +1077,11 @@ body[data-theme="dark"] .semester-label {
 
 /* ── Print ────────────────────────────────────────────────── */
 @media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   :root,
   body,
   body[data-theme="dark"] {
@@ -1133,21 +1138,31 @@ body[data-theme="dark"] .semester-label {
   .arrow-line.path-active,
   .arrow-line.path-muted {
     stroke: #475569 !important;
-    stroke-opacity: .92 !important;
-    stroke-width: 1.6 !important;
+    stroke-opacity: .65 !important;
+    stroke-width: 1.25 !important;
     stroke-dasharray: none !important;
     marker-end: none !important;
   }
 
   .semester-block {
-    background: transparent !important;
+    background: #ffffff !important;
     border-color: #cbd5e1 !important;
     z-index: 2 !important;
   }
 
   .subject-card {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border-color: #64748b !important;
     box-shadow: none !important;
     z-index: 3 !important;
+  }
+
+  .subject-name,
+  .subject-status {
+    background: #ffffff !important;
+    display: inline;
+    padding: 0 .08rem;
   }
 
   .career-hero {

@@ -15,6 +15,8 @@ const MILESTONES_HIDDEN_PREFIX = "unpaz_milestones_hidden:";
 const THEME_KEY = "unpaz_theme";
 const PROGRESS_SCHEMA_VERSION = 2;
 const ONBOARDING_DISMISSED_KEY = "unpaz_onboarding_dismissed";
+const MAX_IMPORT_FILE_BYTES = 1024 * 1024; // 1 MB
+const MAX_IMPORT_TEXT_CHARS = 2 * 1024 * 1024; // 2 MB (UTF-16 chars)
 const STATE_LABELS = ["Pendiente", "Regular", "Aprobada"];
 const STATE_CLASSES = ["", "state-1", "state-2"];
 const EDGE_COLORS = [
@@ -65,6 +67,21 @@ function safeStorageSet(key, value) {
 
 function unique(items) {
   return [...new Set(items)];
+}
+
+function isPlainObject(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function isLikelyJsonImportFile(file) {
+  if (!file) return false;
+  const name = String(file.name || "");
+  const type = String(file.type || "").toLowerCase();
+  const byExt = /\.json$/i.test(name);
+  const byType = type === "" || type.includes("json");
+  return byExt || byType;
 }
 
 function toPlanSlug(planRef) {
@@ -1107,15 +1124,31 @@ async function importProgressFromFile(file) {
   setToolsMenuOpen(false);
   if (!file) return;
 
+  if (!isLikelyJsonImportFile(file)) {
+    showToast("Archivo inválido: seleccioná un archivo .json.");
+    return;
+  }
+
+  if (Number(file.size || 0) > MAX_IMPORT_FILE_BYTES) {
+    showToast("Archivo demasiado grande. Máximo permitido: 1 MB.");
+    return;
+  }
+
+  const rawText = await file.text();
+  if (rawText.length > MAX_IMPORT_TEXT_CHARS) {
+    showToast("Archivo demasiado grande para procesar de forma segura.");
+    return;
+  }
+
   let parsed;
   try {
-    parsed = JSON.parse(await file.text());
+    parsed = JSON.parse(rawText);
   } catch {
     showToast("Archivo inválido: no es un JSON válido.");
     return;
   }
 
-  if (!parsed || typeof parsed !== "object") {
+  if (!isPlainObject(parsed)) {
     showToast("Archivo inválido: estructura incorrecta.");
     return;
   }
@@ -1140,7 +1173,17 @@ async function importProgressFromFile(file) {
     }
   }
 
+  if ("progress" in parsed && !isPlainObject(parsed.progress)) {
+    showToast("Archivo inválido: 'progress' debe ser un objeto.");
+    return;
+  }
+
   const rawProgress = parsed.progress ?? parsed;
+  if (!isPlainObject(rawProgress)) {
+    showToast("Archivo inválido: progreso incompatible.");
+    return;
+  }
+
   const nextProgress = Core.coerceProgressMap(rawProgress, MATERIAS_BY_ID);
   if (Object.keys(nextProgress).length === 0) {
     showToast("El archivo no contiene progreso válido para esta carrera.");
@@ -1236,9 +1279,20 @@ function fallbackCatalogFromPlanUrl(planUrl) {
 }
 
 async function fetchJson(url, label) {
-  const response = await fetch(url, { cache: "no-store" });
+  const resolvedUrl = new URL(String(url || ""), window.location.href);
+  if (resolvedUrl.origin !== window.location.origin) {
+    throw new Error(`Bloqueado por seguridad: ${label} no pertenece al mismo origen.`);
+  }
+  if (!/\.json$/i.test(resolvedUrl.pathname)) {
+    throw new Error(`Bloqueado por seguridad: ${label} debe ser un archivo .json.`);
+  }
+
+  const response = await fetch(resolvedUrl.toString(), {
+    cache: "no-store",
+    headers: { Accept: "application/json, text/plain;q=0.9, */*;q=0.1" }
+  });
   if (!response.ok) {
-    throw new Error(`No se pudo cargar ${label}: ${url} (HTTP ${response.status}).`);
+    throw new Error(`No se pudo cargar ${label}: ${resolvedUrl.toString()} (HTTP ${response.status}).`);
   }
   return response.json();
 }

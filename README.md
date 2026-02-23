@@ -69,6 +69,11 @@ npm run test:e2e
 
 - `core.js` valida schema de materias/metadata antes de usar datos.
 - `script.js` valida catálogo y rechaza estructuras inválidas.
+- Importación de progreso endurecida:
+  - acepta solo JSON (por extensión/tipo)
+  - límite de tamaño (`1 MB`)
+  - validación estricta de estructura (`progress` debe ser objeto)
+- Carga de planes/catalog restringida a `same-origin` y archivos `.json`.
 - CSP y headers de seguridad:
   - `index.html` incluye CSP por `meta` para entornos simples.
   - `_headers` para Netlify.
