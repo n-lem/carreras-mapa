@@ -94,7 +94,9 @@ function areMilestonesHidden() {
 function setCareerTitle(name) {
   const careerName = document.getElementById("career-name");
   if (careerName) {
-    careerName.textContent = name ? `Carrera: ${name}` : "";
+    const text = name ? `Carrera: ${name}` : "";
+    careerName.textContent = text;
+    careerName.title = text;
   }
 }
 
