@@ -11,20 +11,54 @@
 // ── Course data ────────────────────────────────────────────────────────────────
 // Agrega o modifica materias aquí. 'correlativas' es un array de IDs.
 const MATERIAS = [
-  // Cuatrimestre 1
-  { id: "6001", nombre: "Análisis Matemático I",   cuatrimestre: 1, correlativas: [] },
-  { id: "6002", nombre: "Álgebra y Geometría Analítica", cuatrimestre: 1, correlativas: [] },
-  { id: "6003", nombre: "Introducción a la Programación", cuatrimestre: 1, correlativas: [] },
-
-  // Cuatrimestre 2
-  { id: "6006", nombre: "Análisis Matemático II",  cuatrimestre: 2, correlativas: ["6001"] },
-  { id: "6007", nombre: "Algoritmos y Estructuras de Datos", cuatrimestre: 2, correlativas: ["6003"] },
-  { id: "6008", nombre: "Física I",                cuatrimestre: 2, correlativas: ["6001", "6002"] },
-
-  // Cuatrimestre 3
-  { id: "6011", nombre: "Análisis Matemático III", cuatrimestre: 3, correlativas: ["6006"] },
-  { id: "6012", nombre: "Programación Orientada a Objetos", cuatrimestre: 3, correlativas: ["6007"] },
-  { id: "6013", nombre: "Física II",               cuatrimestre: 3, correlativas: ["6008"] },
+  /* Primer año */
+  { "id": "6001", "nombre": "Análisis Matemático I", "correlativas": [] },
+  { "id": "6002", "nombre": "Arquitectura de Computadoras I", "correlativas": [] },
+  { "id": "6003", "nombre": "Introducción a la Programación", "correlativas": [] },
+  { "id": "6004", "nombre": "Estructuras Discretas", "correlativas": [] },
+  { "id": "6005", "nombre": "Ciencia, Tecnología y Sociedad", "correlativas": [] },
+  { "id": "6006", "nombre": "Análisis Matemático II", "correlativas": ["6001"] },
+  { "id": "6007", "nombre": "Álgebra y Geometría Analítica", "correlativas": ["6001"] },
+  { "id": "6008", "nombre": "Algoritmos y Programación", "correlativas": ["6003", "6004"] },
+  { "id": "6009", "nombre": "Arquitectura de Computadoras II", "correlativas": ["6002", "6005"] },
+  { "id": "6010", "nombre": "Inglés I", "correlativas": ["6005"] },
+  /* Segundo año */
+  { "id": "6011", "nombre": "Sistemas Operativos I", "correlativas": ["6002", "6010"] },
+  { "id": "6012", "nombre": "Economía General", "correlativas": ["6001"] },
+  { "id": "6013", "nombre": "Inglés II", "correlativas": ["6010"] },
+  { "id": "6014", "nombre": "Ingeniería de Software I", "correlativas": ["6003", "6004", "6005"] },
+  { "id": "6015", "nombre": "Paradigmas de Programación", "correlativas": ["6003"] },
+  { "id": "6016", "nombre": "Sistemas Operativos II", "correlativas": ["6011"] },
+  { "id": "6017", "nombre": "Laboratorio de Programación y Lenguajes", "correlativas": ["6015"] },
+  { "id": "6018", "nombre": "Programación Orientada a Objetos", "correlativas": ["6008"] },
+  { "id": "6019", "nombre": "Base de Datos I", "correlativas": ["6004", "6007"] },
+  { "id": "6020", "nombre": "Administración I", "correlativas": [] },
+  /* Tercer año */
+  { "id": "6021", "nombre": "Probabilidad y Estadísticas", "correlativas": ["6006", "6007"] },
+  { "id": "6022", "nombre": "Comunicaciones y Redes", "correlativas": ["6004", "6011"] },
+  { "id": "6023", "nombre": "Ingeniería de Software II", "correlativas": ["6014"] },
+  { "id": "6024", "nombre": "Administración II", "correlativas": ["6020"] },
+  { "id": "6025", "nombre": "Laboratorio de Software", "correlativas": ["6014", "6018", "6019"] },
+  { "id": "6026", "nombre": "Base de Datos II", "correlativas": ["6019"] },
+  { "id": "6027", "nombre": "Contabilidad I", "correlativas": ["6020"] },
+  { "id": "6028", "nombre": "Trabajo de Campo", "correlativas": ["6018", "6022", "6023"] },
+  /* Cuarto año */
+  { "id": "6029", "nombre": "Investigación Operativa", "correlativas": ["6021"] },
+  { "id": "6030", "nombre": "Arquitectura Web", "correlativas": ["6022"] },
+  { "id": "6031", "nombre": "Seguridad Informática", "correlativas": ["6017", "6018", "6022", "6023"] },
+  { "id": "6032", "nombre": "Administración de Recursos Humanos", "correlativas": ["6020", "6024"] },
+  { "id": "6033", "nombre": "Contabilidad Avanzada", "correlativas": ["6027"] },
+  { "id": "6034", "nombre": "Sistemas Inteligentes", "correlativas": ["6021", "6023"] },
+  { "id": "6035", "nombre": "Gestión de la Tecnología", "correlativas": ["6022", "6023"] },
+  { "id": "6036", "nombre": "Comercialización", "correlativas": ["6020", "6024"] },
+  { "id": "6037", "nombre": "Planificación Financiera y Proyecto de Inversión", "correlativas": ["6006", "6012", "6020", "6027"] },
+  { "id": "6038", "nombre": "Optativa I", "correlativas": [] },
+  /* Quinto año */
+  { "id": "6039", "nombre": "Gestión de Proyectos", "correlativas": ["6012", "6021"] },
+  { "id": "6040", "nombre": "Inteligencia de los Negocios", "correlativas": ["6023", "6029"] },
+  { "id": "6041", "nombre": "Optativa II", "correlativas": ["6023", "6025", "6026"] },
+  { "id": "6042", "nombre": "Dirección Estratégica", "correlativas": ["6036"] },
+  { "id": "6043", "nombre": "Trabajo Final de Grado", "correlativas": [] }
 ];
 
 // ── State keys ─────────────────────────────────────────────────────────────────
