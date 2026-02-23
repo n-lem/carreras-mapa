@@ -34,6 +34,7 @@ let MATERIAS_BY_ID = {};
 let DEPENDENTS = {};
 let milestoneStateByKey = {};
 let milestonesPanelHidden = false;
+let careerFabOpen = false;
 
 /** @type {Record<string, 0|1|2>} */
 let progress = {};
@@ -103,6 +104,31 @@ function setCareerTitle(name) {
 function setSubtitle(message) {
   const subtitle = document.querySelector(".subtitle");
   if (subtitle) subtitle.textContent = message;
+}
+
+function getCareerSelectElements() {
+  const headerSelect = document.getElementById("career-select");
+  const floatingSelect = document.getElementById("career-select-floating");
+  return [headerSelect, floatingSelect].filter(Boolean);
+}
+
+function setCareerSelectionValue(slug) {
+  getCareerSelectElements().forEach((select) => {
+    const hasOption = [...select.options].some((option) => option.value === slug);
+    if (hasOption) select.value = slug;
+  });
+}
+
+function setCareerFabOpen(open) {
+  const panel = document.getElementById("career-fab-panel");
+  const button = document.getElementById("btn-career-fab");
+  if (!panel || !button) return;
+
+  const nextOpen = Boolean(open);
+  if (button.hidden && nextOpen) return;
+  careerFabOpen = nextOpen;
+  panel.hidden = !nextOpen;
+  button.setAttribute("aria-expanded", String(nextOpen));
 }
 
 function showToast(message) {
@@ -783,24 +809,28 @@ async function loadPlanCatalog() {
 }
 
 function populateCareerSelect(catalog, selectedSlug) {
-  const select = document.getElementById("career-select");
-  if (!select) return;
+  const selects = getCareerSelectElements();
+  if (selects.length === 0) return;
 
-  select.innerHTML = "";
-  catalog.forEach((plan) => {
-    const option = document.createElement("option");
-    option.value = plan.slug;
-    option.textContent = plan.carrera;
-    select.appendChild(option);
+  const fallbackSlug = selectedSlug || catalog[0]?.slug || "";
+
+  selects.forEach((select) => {
+    select.innerHTML = "";
+    catalog.forEach((plan) => {
+      const option = document.createElement("option");
+      option.value = plan.slug;
+      option.textContent = plan.carrera;
+      select.appendChild(option);
+    });
+    select.value = fallbackSlug;
+    select.disabled = catalog.length <= 1;
   });
 
-  if (selectedSlug) {
-    select.value = selectedSlug;
-  } else if (catalog[0]) {
-    select.value = catalog[0].slug;
+  const fabButton = document.getElementById("btn-career-fab");
+  if (fabButton) {
+    fabButton.hidden = catalog.length <= 1;
+    if (fabButton.hidden) setCareerFabOpen(false);
   }
-
-  select.disabled = catalog.length <= 1;
 }
 
 async function loadPlanData(plan) {
@@ -850,6 +880,8 @@ async function activatePlan(plan, allowDemoFallback = false) {
     setCareerTitle(ACTIVE_PLAN_META.carrera || plan.carrera);
     setSubtitle(`Plan cargado (${MATERIAS.length} materias). Hacé clic en cada materia para registrar tu progreso.`);
     safeStorageSet(SELECTED_PLAN_KEY, plan.slug);
+    setCareerSelectionValue(plan.slug);
+    setCareerFabOpen(false);
 
     renderSemesters();
     drawArrows();
@@ -891,6 +923,8 @@ async function activatePlan(plan, allowDemoFallback = false) {
     setCareerTitle("Demo mínima");
     setSubtitle("No se pudo cargar el catálogo/plan. Se muestra la demo mínima.");
     showToast("Error cargando archivos JSON. Revisá data/planes/catalog.json.");
+    setCareerSelectionValue("demo");
+    setCareerFabOpen(false);
 
     renderSemesters();
     drawArrows();
@@ -904,7 +938,10 @@ function bindUiEvents() {
   let resizeTimer = null;
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(drawArrows, 80);
+    resizeTimer = setTimeout(() => {
+      drawArrows();
+      if (window.innerWidth > 768) setCareerFabOpen(false);
+    }, 80);
   });
 
   const resetButton = document.getElementById("btn-reset");
@@ -921,18 +958,52 @@ function bindUiEvents() {
     });
   }
 
-  const careerSelect = document.getElementById("career-select");
-  if (careerSelect) {
-    careerSelect.addEventListener("change", async (event) => {
-      const nextSlug = String(event.target.value);
+  const handleCareerChange = async (nextSlug) => {
       const selected = PLAN_CATALOG.find((item) => item.slug === nextSlug);
       if (!selected) return;
 
       const currentSlug = ACTIVE_PLAN?.slug || "";
+      if (nextSlug === currentSlug) {
+        setCareerFabOpen(false);
+        return;
+      }
+
       const ok = await activatePlan(selected, false);
       if (!ok) {
-        event.target.value = currentSlug;
+        setCareerSelectionValue(currentSlug);
       }
+  };
+
+  getCareerSelectElements().forEach((careerSelect) => {
+    careerSelect.addEventListener("change", async (event) => {
+      const nextSlug = String(event.target.value);
+      await handleCareerChange(nextSlug);
+    });
+  });
+
+  const careerFabButton = document.getElementById("btn-career-fab");
+  if (careerFabButton) {
+    careerFabButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setCareerFabOpen(!careerFabOpen);
+    });
+  }
+
+  document.addEventListener("click", (event) => {
+    if (!careerFabOpen) return;
+    const panel = document.getElementById("career-fab-panel");
+    const button = document.getElementById("btn-career-fab");
+    if (!panel || !button) return;
+
+    const target = event.target;
+    if (target instanceof Node && (panel.contains(target) || button.contains(target))) return;
+    setCareerFabOpen(false);
+  });
+
+  const floatingSelect = document.getElementById("career-select-floating");
+  if (floatingSelect) {
+    floatingSelect.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setCareerFabOpen(false);
     });
   }
 }

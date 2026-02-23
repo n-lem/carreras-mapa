@@ -44,6 +44,20 @@
   <div id="toast" role="alert" aria-live="assertive"></div>
   <section id="milestones" class="milestone-floating" aria-live="polite" hidden></section>
   <button id="btn-show-milestones" class="milestone-show-btn" type="button" hidden>Ver hitos</button>
+  <button
+    id="btn-career-fab"
+    class="career-fab"
+    type="button"
+    aria-controls="career-fab-panel"
+    aria-expanded="false"
+    hidden
+  >
+    Cambiar carrera
+  </button>
+  <section id="career-fab-panel" class="career-fab-panel" aria-live="polite" hidden>
+    <div class="career-fab-title">Cambiar carrera</div>
+    <select id="career-select-floating" aria-label="Seleccionar carrera (flotante)"></select>
+  </section>
 
   <script src="script.js"></script>
 </body>
