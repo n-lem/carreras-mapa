@@ -8,20 +8,26 @@
 </head>
 <body data-catalog="data/planes/catalog.json" data-plan="data/planes/licenciatura-en-gestion-de-tecnologias-de-la-informacion.materias.json">
   <header>
-    <h1>Mapa de Correlatividades</h1>
-    <p id="career-name" class="career-name"></p>
-    <p class="subtitle">Hacé clic en cada materia para registrar tu progreso</p>
-    <div class="career-picker">
-      <label for="career-select">Carrera</label>
-      <select id="career-select" aria-label="Seleccionar carrera"></select>
+    <div class="header-main">
+      <h1>Mapa de Correlatividades</h1>
+      <p id="career-name" class="career-name"></p>
+      <p class="subtitle">Hacé clic en cada materia para registrar tu progreso</p>
     </div>
-    <div class="legend">
-      <span class="legend-item pending">Pendiente</span>
-      <span class="legend-item regular">Regular</span>
-      <span class="legend-item approved">Aprobada</span>
+    <div class="header-controls">
+      <div class="career-picker">
+        <label for="career-select">Carrera</label>
+        <select id="career-select" aria-label="Seleccionar carrera"></select>
+      </div>
+      <div class="header-actions">
+        <div class="legend">
+          <span class="legend-item pending">Pendiente</span>
+          <span class="legend-item regular">Regular</span>
+          <span class="legend-item approved">Aprobada</span>
+        </div>
+        <button id="btn-theme" type="button" title="Cambiar tema">Modo oscuro</button>
+        <button id="btn-reset" title="Borrar todo el progreso guardado">Reiniciar progreso</button>
+      </div>
     </div>
-    <button id="btn-theme" type="button" title="Cambiar tema">Modo oscuro</button>
-    <button id="btn-reset" title="Borrar todo el progreso guardado">Reiniciar progreso</button>
   </header>
   <section id="career-progress" class="career-progress" aria-live="polite"></section>
 
