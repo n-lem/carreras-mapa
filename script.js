@@ -11,6 +11,7 @@
 const DEFAULT_PLAN_URL = "data/planes/licenciatura-en-gestion-de-tecnologias-de-la-informacion.materias.json";
 const DEFAULT_CATALOG_URL = "data/planes/catalog.json";
 const SELECTED_PLAN_KEY = "unpaz_selected_plan";
+const MILESTONES_HIDDEN_PREFIX = "unpaz_milestones_hidden:";
 const THEME_KEY = "unpaz_theme";
 const STATE_LABELS = ["Pendiente", "Regular", "Aprobada"];
 const STATE_CLASSES = ["", "state-1", "state-2"];
@@ -32,6 +33,7 @@ let MATERIAS = [];
 let MATERIAS_BY_ID = {};
 let DEPENDENTS = {};
 let milestoneStateByKey = {};
+let milestonesPanelHidden = false;
 
 /** @type {Record<string, 0|1|2>} */
 let progress = {};
@@ -74,6 +76,19 @@ function humanizeSlug(slug) {
 
 function setStorageKeyForSlug(slug) {
   STORAGE_KEY = `unpaz_progress:${slug || "plan"}`;
+}
+
+function milestonesHiddenKey() {
+  return `${MILESTONES_HIDDEN_PREFIX}${ACTIVE_PLAN?.slug || "demo"}`;
+}
+
+function setMilestonesHidden(hidden) {
+  milestonesPanelHidden = Boolean(hidden);
+  safeStorageSet(milestonesHiddenKey(), hidden ? "1" : "0");
+}
+
+function areMilestonesHidden() {
+  return safeStorageGet(milestonesHiddenKey()) === "1";
 }
 
 function setCareerTitle(name) {
@@ -443,10 +458,6 @@ function updateDependents(changedId) {
   dependentIds.forEach((dependentId) => updateCard(dependentId));
 }
 
-function allMateriasApproved() {
-  return MATERIAS.length > 0 && MATERIAS.every((materia) => getState(materia.id) === 2);
-}
-
 function normalizeMilestones(meta) {
   const rawMilestones = Array.isArray(meta?.hitos) ? meta.hitos : [];
   const milestones = rawMilestones
@@ -479,21 +490,8 @@ function normalizeMilestones(meta) {
 }
 
 function isMilestoneAchieved(milestone) {
-  const criterionType = milestone?.criterio?.tipo;
-
-  if (criterionType === "cuatrimestre_max") {
-    const maxCuatrimestre = Number(milestone.criterio.valor);
-    if (!Number.isFinite(maxCuatrimestre)) return false;
-    const subset = MATERIAS.filter((materia) => materia.cuatrimestre <= maxCuatrimestre);
-    return subset.length > 0 && subset.every((materia) => getState(materia.id) === 2);
-  }
-
-  if (criterionType === "ids_exactas" && Array.isArray(milestone?.criterio?.ids)) {
-    const ids = milestone.criterio.ids.map((id) => String(id));
-    return ids.length > 0 && ids.every((id) => getState(id) === 2);
-  }
-
-  return allMateriasApproved();
+  const progressInfo = milestoneProgress(milestone);
+  return progressInfo.total > 0 && progressInfo.approved === progressInfo.total;
 }
 
 function milestoneLabel(milestone) {
@@ -505,48 +503,158 @@ function milestoneKey(milestone) {
   return `${milestone?.tipo || "hito"}|${milestone?.nombre || ""}|${criterio}`;
 }
 
+function milestoneScopeMateriaIds(milestone) {
+  const criterionType = milestone?.criterio?.tipo;
+
+  if (criterionType === "cuatrimestre_max") {
+    const maxCuatrimestre = Number(milestone?.criterio?.valor);
+    if (!Number.isFinite(maxCuatrimestre)) return [];
+    return MATERIAS
+      .filter((materia) => materia.cuatrimestre <= maxCuatrimestre)
+      .map((materia) => materia.id);
+  }
+
+  if (criterionType === "ids_exactas" && Array.isArray(milestone?.criterio?.ids)) {
+    return unique(
+      milestone.criterio.ids
+        .map((id) => String(id))
+        .filter((id) => Boolean(MATERIAS_BY_ID[id]))
+    );
+  }
+
+  return MATERIAS.map((materia) => materia.id);
+}
+
+function milestoneProgress(milestone) {
+  const ids = milestoneScopeMateriaIds(milestone);
+  const total = ids.length;
+  const approved = ids.filter((id) => getState(id) === 2).length;
+  const percentage = total > 0 ? Math.round((approved / total) * 100) : 0;
+  return { total, approved, percentage };
+}
+
+function careerProgressInfo() {
+  const total = MATERIAS.length;
+  const approved = MATERIAS.filter((materia) => getState(materia.id) === 2).length;
+  const percentage = total > 0 ? Math.round((approved / total) * 100) : 0;
+  return { total, approved, percentage };
+}
+
+function updateCareerProgress() {
+  const container = document.getElementById("career-progress");
+  if (!container) return;
+
+  const { total, approved, percentage } = careerProgressInfo();
+  if (total === 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = "";
+
+  const box = document.createElement("div");
+  box.className = "career-progress-box";
+
+  const head = document.createElement("div");
+  head.className = "career-progress-head";
+
+  const title = document.createElement("span");
+  title.className = "career-progress-title";
+  title.textContent = "Progreso de carrera";
+  head.appendChild(title);
+
+  const meta = document.createElement("span");
+  meta.className = "career-progress-meta";
+  meta.textContent = `Aprobadas ${approved}/${total} (${percentage}%)`;
+  head.appendChild(meta);
+
+  box.appendChild(head);
+
+  const track = document.createElement("div");
+  track.className = "career-progress-track";
+
+  const fill = document.createElement("div");
+  fill.className = "career-progress-fill";
+  fill.style.width = `${percentage}%`;
+  fill.setAttribute("aria-hidden", "true");
+
+  track.appendChild(fill);
+  box.appendChild(track);
+  container.appendChild(box);
+}
+
 function updateMilestones() {
   const container = document.getElementById("milestones");
+  const showButton = document.getElementById("btn-show-milestones");
   if (!container) return;
 
   const milestones = normalizeMilestones(ACTIVE_PLAN_META);
   if (milestones.length === 0) {
     container.hidden = true;
     container.innerHTML = "";
+    if (showButton) showButton.hidden = true;
     milestoneStateByKey = {};
     return;
   }
 
   const nextStateByKey = {};
-  const achievedMilestones = [];
+  const hidden = milestonesPanelHidden;
+  container.innerHTML = "";
 
   milestones.forEach((milestone) => {
     const key = milestoneKey(milestone);
-    const achieved = isMilestoneAchieved(milestone);
-    nextStateByKey[key] = achieved;
-    if (achieved) {
-      achievedMilestones.push({ milestone, key, isNew: !milestoneStateByKey[key] });
-    }
+    nextStateByKey[key] = isMilestoneAchieved(milestone);
   });
 
-  if (achievedMilestones.length === 0) {
-    container.hidden = true;
-    container.innerHTML = "";
-    milestoneStateByKey = nextStateByKey;
-    return;
-  }
+  const header = document.createElement("div");
+  header.className = "milestone-floating-header";
 
-  container.innerHTML = "";
-  container.hidden = false;
+  const headerTitle = document.createElement("span");
+  headerTitle.className = "milestone-floating-title";
+  headerTitle.textContent = "Progreso de títulos";
+  header.appendChild(headerTitle);
 
-  achievedMilestones.forEach(({ milestone, isNew }) => {
+  const hideButton = document.createElement("button");
+  hideButton.id = "btn-hide-milestones";
+  hideButton.type = "button";
+  hideButton.textContent = "Ocultar";
+  hideButton.addEventListener("click", () => {
+    setMilestonesHidden(true);
+    updateMilestones();
+  });
+  header.appendChild(hideButton);
+  container.appendChild(header);
+
+  milestones.forEach((milestone) => {
+    const key = milestoneKey(milestone);
+    const achieved = nextStateByKey[key];
+    const isNew = achieved && !milestoneStateByKey[key];
+    const progressInfo = milestoneProgress(milestone);
+
     const card = document.createElement("div");
-    card.className = `milestone-float-card achieved${isNew ? " new-achievement" : ""}`;
-    const title = milestoneLabel(milestone);
+    card.className = `milestone-float-card${achieved ? " achieved" : ""}${isNew ? " new-achievement" : ""}`;
+
+    const title = document.createElement("span");
+    title.className = "milestone-float-title";
     const suffix = milestone.nombre ? `: ${milestone.nombre}` : "";
-    card.textContent = `✓ ${title} alcanzado${suffix}`;
+    title.textContent = `${achieved ? "✓" : "•"} ${milestoneLabel(milestone)}${suffix}`;
+    card.appendChild(title);
+
+    const progressText = document.createElement("span");
+    progressText.className = "milestone-float-progress";
+    progressText.textContent = `Aprobadas ${progressInfo.approved}/${progressInfo.total} (${progressInfo.percentage}%)`;
+    card.appendChild(progressText);
+
     container.appendChild(card);
   });
+
+  if (hidden) {
+    container.hidden = true;
+    if (showButton) showButton.hidden = false;
+  } else {
+    container.hidden = false;
+    if (showButton) showButton.hidden = true;
+  }
 
   milestoneStateByKey = nextStateByKey;
 }
@@ -579,6 +687,7 @@ function handleCardClick(id) {
   updateCard(id);
   updateDependents(id);
   drawArrows();
+  updateCareerProgress();
   updateMilestones();
 }
 
@@ -588,6 +697,7 @@ function resetProgress() {
   saveProgress();
   renderSemesters();
   drawArrows();
+  updateCareerProgress();
   updateMilestones();
 }
 
@@ -729,6 +839,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     ACTIVE_PLAN_META = metadata || { carrera: plan.carrera, hitos: [] };
 
     setStorageKeyForSlug(plan.slug);
+    milestonesPanelHidden = areMilestonesHidden();
     setMaterias(materias);
     progress = loadProgress();
     milestoneStateByKey = {};
@@ -740,6 +851,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
 
     renderSemesters();
     drawArrows();
+    updateCareerProgress();
     updateMilestones();
 
     return true;
@@ -768,6 +880,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
       ]
     };
     setStorageKeyForSlug("demo");
+    milestonesPanelHidden = areMilestonesHidden();
     setMaterias(FALLBACK_MATERIAS);
     progress = loadProgress();
     milestoneStateByKey = {};
@@ -779,6 +892,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
 
     renderSemesters();
     drawArrows();
+    updateCareerProgress();
     updateMilestones();
     return false;
   }
@@ -796,6 +910,14 @@ function bindUiEvents() {
 
   const themeButton = document.getElementById("btn-theme");
   if (themeButton) themeButton.addEventListener("click", toggleTheme);
+
+  const showMilestonesButton = document.getElementById("btn-show-milestones");
+  if (showMilestonesButton) {
+    showMilestonesButton.addEventListener("click", () => {
+      setMilestonesHidden(false);
+      updateMilestones();
+    });
+  }
 
   const careerSelect = document.getElementById("career-select");
   if (careerSelect) {

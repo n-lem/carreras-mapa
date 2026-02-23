@@ -192,6 +192,57 @@ body[data-theme="dark"] .career-picker select {
 
 #btn-reset:hover { background: var(--btn-danger-bg-hover); }
 
+/* ── Career progress ──────────────────────────────────────── */
+.career-progress {
+  max-width: 960px;
+  margin: .8rem auto 0;
+  padding: 0 1rem;
+}
+
+.career-progress-box {
+  border: 1px solid var(--milestone-border);
+  border-radius: var(--radius);
+  background: var(--milestone-bg);
+  color: var(--milestone-text);
+  padding: .65rem .75rem;
+  box-shadow: var(--shadow);
+}
+
+.career-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  margin-bottom: .45rem;
+}
+
+.career-progress-title {
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+.career-progress-meta {
+  font-size: .75rem;
+  font-weight: 700;
+  opacity: .9;
+}
+
+.career-progress-track {
+  width: 100%;
+  height: .58rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, .35);
+  overflow: hidden;
+}
+
+.career-progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eab308, #22c55e);
+  transition: width .25s ease;
+}
+
 /* ── Floating milestones ──────────────────────────────────── */
 .milestone-floating {
   position: fixed;
@@ -202,7 +253,42 @@ body[data-theme="dark"] .career-picker select {
   flex-direction: column;
   gap: .5rem;
   max-width: 360px;
-  pointer-events: none;
+  pointer-events: auto;
+}
+
+.milestone-floating-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  border-radius: var(--radius);
+  padding: .5rem .7rem;
+  border: 1px solid var(--milestone-border);
+  background: var(--milestone-bg);
+  color: var(--milestone-text);
+  box-shadow: var(--shadow);
+}
+
+.milestone-floating-title {
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+#btn-hide-milestones,
+.milestone-show-btn {
+  border: 1px solid var(--milestone-border);
+  background: var(--milestone-bg);
+  color: var(--milestone-text);
+  border-radius: 999px;
+  padding: .32rem .62rem;
+  font-size: .72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#btn-hide-milestones:hover,
+.milestone-show-btn:hover {
+  filter: brightness(.97);
 }
 
 .milestone-float-card {
@@ -215,6 +301,17 @@ body[data-theme="dark"] .career-picker select {
   font-weight: 600;
   line-height: 1.3;
   box-shadow: var(--shadow);
+}
+
+.milestone-float-title {
+  display: block;
+  margin-bottom: .2rem;
+}
+
+.milestone-float-progress {
+  display: block;
+  font-size: .72rem;
+  opacity: .88;
 }
 
 .milestone-float-card.achieved {
@@ -230,6 +327,13 @@ body[data-theme="dark"] .career-picker select {
 @keyframes milestone-pop {
   0% { transform: translateY(10px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }
+}
+
+.milestone-show-btn {
+  position: fixed;
+  right: 1rem;
+  bottom: 5rem;
+  z-index: 9900;
 }
 
 /* ── Diagram container ────────────────────────────────────── */
@@ -427,6 +531,17 @@ main { padding: 2rem 1rem 4rem; }
     bottom: 5.25rem;
     max-width: none;
   }
+
+  .milestone-show-btn {
+    left: .75rem;
+    right: .75rem;
+    bottom: 5.25rem;
+    width: auto;
+  }
+
+  .career-progress {
+    margin-top: .65rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -434,5 +549,15 @@ main { padding: 2rem 1rem 4rem; }
 
   .milestone-floating {
     bottom: 5.6rem;
+  }
+
+  .milestone-show-btn {
+    bottom: 5.6rem;
+  }
+
+  .career-progress-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .3rem;
   }
 }
