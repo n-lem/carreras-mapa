@@ -1,6 +1,6 @@
 /**
- * Mapa de Correlatividades - Demo minima (2 materias)
- * Vanilla JS (ES6+) + LocalStorage
+ * Mapa de Correlatividades
+ * Vanilla JS (ES6+) + LocalStorage + carga de plan desde JSON.
  *
  * Estados:
  * 0 = Pendiente
@@ -8,38 +8,106 @@
  * 2 = Aprobada
  */
 
-const MATERIAS = [
-  {
-    id: "6001",
-    nombre: "Análisis Matemático I",
-    cuatrimestre: 1,
-    correlativas: []
-  },
-  {
-    id: "6006",
-    nombre: "Análisis Matemático II",
-    cuatrimestre: 2,
-    correlativas: ["6001"]
-  }
-];
-
-const STORAGE_KEY = "unpaz_progress";
+const DEFAULT_PLAN_URL = "data/planes/gestion-de-tecnologias-de-la-informacion.materias.json";
 const STATE_LABELS = ["Pendiente", "Regular", "Aprobada"];
 const STATE_CLASSES = ["", "state-1", "state-2"];
-const MATERIAS_BY_ID = Object.fromEntries(MATERIAS.map((m) => [m.id, m]));
+const FALLBACK_MATERIAS = [
+  { id: "6001", nombre: "Análisis Matemático I", cuatrimestre: 1, correlativas: [] },
+  { id: "6006", nombre: "Análisis Matemático II", cuatrimestre: 2, correlativas: ["6001"] }
+];
 
-/** @type {Record<string, string[]>} */
-const DEPENDENTS = MATERIAS.reduce((acc, materia) => {
-  materia.correlativas.forEach((correlativaId) => {
-    if (!acc[correlativaId]) acc[correlativaId] = [];
-    acc[correlativaId].push(materia.id);
-  });
-  return acc;
-}, {});
+let STORAGE_KEY = "unpaz_progress:demo";
+let MATERIAS = [];
+let MATERIAS_BY_ID = {};
+let DEPENDENTS = {};
 
 /** @type {Record<string, 0|1|2>} */
 let progress = {};
 let toastTimer = null;
+
+function toPlanSlug(planUrl) {
+  const filename = (planUrl.split("/").pop() || "plan").toLowerCase();
+  const withoutExt = filename.replace(/\.materias\.json$/, "").replace(/\.json$/, "");
+  const slug = withoutExt.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return slug || "plan";
+}
+
+function setStorageKey(planUrl) {
+  STORAGE_KEY = `unpaz_progress:${toPlanSlug(planUrl)}`;
+}
+
+function unique(items) {
+  return [...new Set(items)];
+}
+
+function normalizeMateria(raw) {
+  const id = String(raw?.id ?? "").trim();
+  const nombre = String(raw?.nombre ?? "").trim();
+  const cuatrimestre = Number(raw?.cuatrimestre);
+
+  if (!id || !nombre || !Number.isFinite(cuatrimestre)) return null;
+
+  const correlativasRaw = Array.isArray(raw?.correlativas) ? raw.correlativas : [];
+  const correlativas = unique(
+    correlativasRaw
+      .map((value) => String(value).trim())
+      .filter(Boolean)
+      .filter((correlativaId) => correlativaId !== id)
+  );
+
+  return {
+    id,
+    nombre,
+    cuatrimestre: Math.max(1, Math.trunc(cuatrimestre)),
+    correlativas
+  };
+}
+
+function setMaterias(materias) {
+  MATERIAS = materias;
+  MATERIAS_BY_ID = Object.fromEntries(MATERIAS.map((materia) => [materia.id, materia]));
+  DEPENDENTS = MATERIAS.reduce((acc, materia) => {
+    materia.correlativas.forEach((correlativaId) => {
+      if (!acc[correlativaId]) acc[correlativaId] = [];
+      acc[correlativaId].push(materia.id);
+    });
+    return acc;
+  }, {});
+}
+
+function resolvePlanUrl() {
+  return document.body?.dataset.plan || DEFAULT_PLAN_URL;
+}
+
+async function loadPlanFromJson() {
+  const planUrl = resolvePlanUrl();
+  setStorageKey(planUrl);
+
+  const response = await fetch(planUrl, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`No se pudo cargar ${planUrl} (HTTP ${response.status}).`);
+  }
+
+  const data = await response.json();
+  if (!Array.isArray(data)) {
+    throw new Error("El plan debe ser un array JSON de materias.");
+  }
+
+  const materias = data
+    .map(normalizeMateria)
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a.cuatrimestre !== b.cuatrimestre) return a.cuatrimestre - b.cuatrimestre;
+      return a.id.localeCompare(b.id);
+    });
+
+  if (materias.length === 0) {
+    throw new Error("El plan JSON no contiene materias válidas.");
+  }
+
+  setMaterias(materias);
+  return { planUrl, count: materias.length };
+}
 
 function loadProgress() {
   try {
@@ -129,6 +197,8 @@ function getBlockingDependents(id) {
 
 function showToast(message) {
   const toast = document.getElementById("toast");
+  if (!toast) return;
+
   toast.textContent = message;
   toast.classList.add("show");
 
@@ -136,6 +206,11 @@ function showToast(message) {
   toastTimer = setTimeout(() => {
     toast.classList.remove("show");
   }, 2800);
+}
+
+function setSubtitle(message) {
+  const subtitle = document.querySelector(".subtitle");
+  if (subtitle) subtitle.textContent = message;
 }
 
 function buildDefs(svg) {
@@ -367,19 +442,7 @@ function resetProgress() {
   drawArrows();
 }
 
-function init() {
-  progress = loadProgress();
-  if (normalizeProgressState()) saveProgress();
-
-  const svg = document.getElementById("arrows-svg");
-  if (svg) buildDefs(svg);
-
-  renderSemesters();
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(drawArrows);
-  });
-
+function bindUiEvents() {
   let resizeTimer = null;
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
@@ -388,6 +451,32 @@ function init() {
 
   const resetButton = document.getElementById("btn-reset");
   if (resetButton) resetButton.addEventListener("click", resetProgress);
+}
+
+async function init() {
+  const svg = document.getElementById("arrows-svg");
+  if (svg) buildDefs(svg);
+  bindUiEvents();
+
+  let loadInfo = null;
+  try {
+    loadInfo = await loadPlanFromJson();
+    setSubtitle(`Plan cargado (${loadInfo.count} materias). Hacé clic en cada materia para registrar tu progreso.`);
+  } catch (error) {
+    console.error(error);
+    setStorageKey("demo");
+    setMaterias(FALLBACK_MATERIAS);
+    setSubtitle("No se pudo cargar el JSON del plan. Se muestra la demo mínima.");
+    showToast("Error cargando plan JSON. Revisá la ruta data-plan en index.html.");
+  }
+
+  progress = loadProgress();
+  if (normalizeProgressState()) saveProgress();
+  renderSemesters();
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(drawArrows);
+  });
 }
 
 init();
