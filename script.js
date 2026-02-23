@@ -1,6 +1,6 @@
 /**
  * Mapa de Correlatividades
- * Vanilla JS (ES6+) + LocalStorage + carga de plan desde JSON.
+ * Vanilla JS (ES6+) + LocalStorage + carga dinámica de carreras.
  *
  * Estados:
  * 0 = Pendiente
@@ -8,10 +8,12 @@
  * 2 = Aprobada
  */
 
-const DEFAULT_PLAN_URL = "data/planes/gestion-de-tecnologias-de-la-informacion.materias.json";
+const DEFAULT_PLAN_URL = "data/planes/licenciatura-en-gestion-de-tecnologias-de-la-informacion.materias.json";
+const DEFAULT_CATALOG_URL = "data/planes/catalog.json";
+const SELECTED_PLAN_KEY = "unpaz_selected_plan";
+const THEME_KEY = "unpaz_theme";
 const STATE_LABELS = ["Pendiente", "Regular", "Aprobada"];
 const STATE_CLASSES = ["", "state-1", "state-2"];
-const THEME_KEY = "unpaz_theme";
 const EDGE_COLORS = [
   "#3b82f6", "#06b6d4", "#10b981", "#84cc16", "#eab308", "#f59e0b",
   "#f97316", "#ef4444", "#ec4899", "#8b5cf6", "#6366f1", "#14b8a6"
@@ -22,6 +24,10 @@ const FALLBACK_MATERIAS = [
 ];
 
 let STORAGE_KEY = "unpaz_progress:demo";
+let PLAN_CATALOG = [];
+let ACTIVE_PLAN = null;
+let ACTIVE_PLAN_META = null;
+
 let MATERIAS = [];
 let MATERIAS_BY_ID = {};
 let DEPENDENTS = {};
@@ -30,26 +36,102 @@ let DEPENDENTS = {};
 let progress = {};
 let toastTimer = null;
 
-function toPlanSlug(planUrl) {
-  const filename = (planUrl.split("/").pop() || "plan").toLowerCase();
-  const withoutExt = filename.replace(/\.materias\.json$/, "").replace(/\.json$/, "");
-  const slug = withoutExt.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  return slug || "plan";
+function safeStorageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
 }
 
-function setStorageKey(planUrl) {
-  STORAGE_KEY = `unpaz_progress:${toPlanSlug(planUrl)}`;
+function safeStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // noop
+  }
 }
 
 function unique(items) {
   return [...new Set(items)];
 }
 
+function toPlanSlug(planRef) {
+  const filename = (String(planRef || "").split("/").pop() || "plan").toLowerCase();
+  const withoutExt = filename.replace(/\.materias\.json$/, "").replace(/\.json$/, "");
+  const slug = withoutExt.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return slug || "plan";
+}
+
+function humanizeSlug(slug) {
+  return String(slug || "plan")
+    .split("-")
+    .filter(Boolean)
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(" ");
+}
+
+function setStorageKeyForSlug(slug) {
+  STORAGE_KEY = `unpaz_progress:${slug || "plan"}`;
+}
+
+function setCareerTitle(name) {
+  const careerName = document.getElementById("career-name");
+  if (careerName) {
+    careerName.textContent = name ? `Carrera: ${name}` : "";
+  }
+}
+
+function setSubtitle(message) {
+  const subtitle = document.querySelector(".subtitle");
+  if (subtitle) subtitle.textContent = message;
+}
+
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  if (!toast) return;
+
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2800);
+}
+
+function resolvePreferredTheme() {
+  const persisted = safeStorageGet(THEME_KEY);
+  if (persisted === "dark" || persisted === "light") return persisted;
+
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return prefersDark ? "dark" : "light";
+}
+
+function updateThemeButtonLabel(theme) {
+  const themeButton = document.getElementById("btn-theme");
+  if (!themeButton) return;
+  const isDark = theme === "dark";
+  themeButton.textContent = isDark ? "Modo claro" : "Modo oscuro";
+  themeButton.setAttribute("aria-label", isDark ? "Activar modo claro" : "Activar modo oscuro");
+}
+
+function setTheme(theme) {
+  const normalized = theme === "dark" ? "dark" : "light";
+  document.body.dataset.theme = normalized;
+  safeStorageSet(THEME_KEY, normalized);
+  updateThemeButtonLabel(normalized);
+}
+
+function toggleTheme() {
+  const current = document.body.dataset.theme === "dark" ? "dark" : "light";
+  setTheme(current === "dark" ? "light" : "dark");
+}
+
 function normalizeMateria(raw) {
   const id = String(raw?.id ?? "").trim();
   const nombre = String(raw?.nombre ?? "").trim();
   const cuatrimestre = Number(raw?.cuatrimestre);
-
   if (!id || !nombre || !Number.isFinite(cuatrimestre)) return null;
 
   const correlativasRaw = Array.isArray(raw?.correlativas) ? raw.correlativas : [];
@@ -80,40 +162,6 @@ function setMaterias(materias) {
   }, {});
 }
 
-function resolvePlanUrl() {
-  return document.body?.dataset.plan || DEFAULT_PLAN_URL;
-}
-
-async function loadPlanFromJson() {
-  const planUrl = resolvePlanUrl();
-  setStorageKey(planUrl);
-
-  const response = await fetch(planUrl, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`No se pudo cargar ${planUrl} (HTTP ${response.status}).`);
-  }
-
-  const data = await response.json();
-  if (!Array.isArray(data)) {
-    throw new Error("El plan debe ser un array JSON de materias.");
-  }
-
-  const materias = data
-    .map(normalizeMateria)
-    .filter(Boolean)
-    .sort((a, b) => {
-      if (a.cuatrimestre !== b.cuatrimestre) return a.cuatrimestre - b.cuatrimestre;
-      return a.id.localeCompare(b.id);
-    });
-
-  if (materias.length === 0) {
-    throw new Error("El plan JSON no contiene materias válidas.");
-  }
-
-  setMaterias(materias);
-  return { planUrl, count: materias.length };
-}
-
 function loadProgress() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -131,6 +179,33 @@ function loadProgress() {
   } catch {
     return {};
   }
+}
+
+function saveProgress() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+  } catch {
+    // Ignora errores de cuota/privacidad del navegador.
+  }
+}
+
+function getState(id) {
+  return progress[id] ?? 0;
+}
+
+function canAdvanceTo(id, targetState) {
+  const materia = MATERIAS_BY_ID[id];
+  if (!materia) return false;
+
+  if (targetState === 1) {
+    return materia.correlativas.every((cid) => getState(cid) >= 1);
+  }
+
+  if (targetState === 2) {
+    return materia.correlativas.every((cid) => getState(cid) === 2);
+  }
+
+  return true;
 }
 
 function normalizeProgressState() {
@@ -162,33 +237,6 @@ function normalizeProgressState() {
   return changed;
 }
 
-function saveProgress() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-  } catch {
-    // Ignora errores de cuota/privacidad del navegador.
-  }
-}
-
-function getState(id) {
-  return progress[id] ?? 0;
-}
-
-function canAdvanceTo(id, targetState) {
-  const materia = MATERIAS_BY_ID[id];
-  if (!materia) return false;
-
-  if (targetState === 1) {
-    return materia.correlativas.every((cid) => getState(cid) >= 1);
-  }
-
-  if (targetState === 2) {
-    return materia.correlativas.every((cid) => getState(cid) === 2);
-  }
-
-  return true;
-}
-
 function isLocked(id) {
   return getState(id) === 0 && !canAdvanceTo(id, 1);
 }
@@ -200,58 +248,13 @@ function getBlockingDependents(id) {
     .filter((materia) => getState(materia.id) > 0);
 }
 
-function showToast(message) {
-  const toast = document.getElementById("toast");
-  if (!toast) return;
+function getMissingCorrelativas(id, targetState) {
+  const materia = MATERIAS_BY_ID[id];
+  if (!materia) return [];
 
-  toast.textContent = message;
-  toast.classList.add("show");
-
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    toast.classList.remove("show");
-  }, 2800);
-}
-
-function setSubtitle(message) {
-  const subtitle = document.querySelector(".subtitle");
-  if (subtitle) subtitle.textContent = message;
-}
-
-function resolvePreferredTheme() {
-  try {
-    const persisted = localStorage.getItem(THEME_KEY);
-    if (persisted === "dark" || persisted === "light") return persisted;
-  } catch {
-    // noop
-  }
-
-  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-  return prefersDark ? "dark" : "light";
-}
-
-function setTheme(theme) {
-  const normalized = theme === "dark" ? "dark" : "light";
-  document.body.dataset.theme = normalized;
-  try {
-    localStorage.setItem(THEME_KEY, normalized);
-  } catch {
-    // noop
-  }
-  updateThemeButtonLabel(normalized);
-}
-
-function updateThemeButtonLabel(theme) {
-  const themeButton = document.getElementById("btn-theme");
-  if (!themeButton) return;
-  const isDark = theme === "dark";
-  themeButton.textContent = isDark ? "Modo claro" : "Modo oscuro";
-  themeButton.setAttribute("aria-label", isDark ? "Activar modo claro" : "Activar modo oscuro");
-}
-
-function toggleTheme() {
-  const current = document.body.dataset.theme === "dark" ? "dark" : "light";
-  setTheme(current === "dark" ? "light" : "dark");
+  return materia.correlativas
+    .filter((correlativaId) => getState(correlativaId) < targetState)
+    .map((correlativaId) => MATERIAS_BY_ID[correlativaId]?.nombre || correlativaId);
 }
 
 function buildDefs(svg) {
@@ -322,9 +325,9 @@ function drawArrows() {
       const x2 = to.cx;
       const y2 = to.top - 2;
       const midY = (y1 + y2) / 2;
+      const colorIndex = edgeColorIndexForMateria(materia.id);
 
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      const colorIndex = edgeColorIndexForMateria(materia.id);
       path.setAttribute("d", `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`);
       path.setAttribute("class", arrowClass(correlativaId, materia.id));
       path.style.setProperty("--edge-color", EDGE_COLORS[colorIndex]);
@@ -439,13 +442,89 @@ function updateDependents(changedId) {
   dependentIds.forEach((dependentId) => updateCard(dependentId));
 }
 
-function getMissingCorrelativas(id, targetState) {
-  const materia = MATERIAS_BY_ID[id];
-  if (!materia) return [];
+function allMateriasApproved() {
+  return MATERIAS.length > 0 && MATERIAS.every((materia) => getState(materia.id) === 2);
+}
 
-  return materia.correlativas
-    .filter((correlativaId) => getState(correlativaId) < targetState)
-    .map((correlativaId) => MATERIAS_BY_ID[correlativaId]?.nombre || correlativaId);
+function normalizeMilestones(meta) {
+  const rawMilestones = Array.isArray(meta?.hitos) ? meta.hitos : [];
+  const milestones = rawMilestones
+    .map((item) => {
+      const tipo = String(item?.tipo ?? "").trim();
+      const nombre = String(item?.nombre ?? "").trim();
+
+      let criterio = item?.criterio ?? null;
+      if (!criterio && tipo === "titulo_intermedio" && Number.isFinite(Number(item?.anio_estimado))) {
+        criterio = { tipo: "cuatrimestre_max", valor: Number(item.anio_estimado) * 2 };
+      }
+      if (!criterio && tipo === "titulo_final") {
+        criterio = { tipo: "plan_completo" };
+      }
+
+      if (!tipo) return null;
+      return { tipo, nombre, criterio };
+    })
+    .filter(Boolean);
+
+  if (!milestones.some((item) => item.tipo === "titulo_final")) {
+    milestones.push({
+      tipo: "titulo_final",
+      nombre: "Plan completo",
+      criterio: { tipo: "plan_completo" }
+    });
+  }
+
+  return milestones;
+}
+
+function isMilestoneAchieved(milestone) {
+  const criterionType = milestone?.criterio?.tipo;
+
+  if (criterionType === "cuatrimestre_max") {
+    const maxCuatrimestre = Number(milestone.criterio.valor);
+    if (!Number.isFinite(maxCuatrimestre)) return false;
+    const subset = MATERIAS.filter((materia) => materia.cuatrimestre <= maxCuatrimestre);
+    return subset.length > 0 && subset.every((materia) => getState(materia.id) === 2);
+  }
+
+  if (criterionType === "ids_exactas" && Array.isArray(milestone?.criterio?.ids)) {
+    const ids = milestone.criterio.ids.map((id) => String(id));
+    return ids.length > 0 && ids.every((id) => getState(id) === 2);
+  }
+
+  return allMateriasApproved();
+}
+
+function milestoneLabel(milestone) {
+  return milestone.tipo === "titulo_intermedio" ? "Título intermedio" : "Título final";
+}
+
+function updateMilestones() {
+  const container = document.getElementById("milestones");
+  if (!container) return;
+
+  const milestones = normalizeMilestones(ACTIVE_PLAN_META);
+  if (milestones.length === 0) {
+    container.hidden = true;
+    container.innerHTML = "";
+    return;
+  }
+
+  container.hidden = false;
+  container.innerHTML = "";
+
+  milestones.forEach((milestone) => {
+    const achieved = isMilestoneAchieved(milestone);
+
+    const badge = document.createElement("span");
+    badge.className = `milestone-badge${achieved ? " achieved" : ""}`;
+
+    const stateText = achieved ? "alcanzado" : "pendiente";
+    const base = `${achieved ? "✓" : "•"} ${milestoneLabel(milestone)} ${stateText}`;
+    badge.textContent = milestone.nombre ? `${base}: ${milestone.nombre}` : base;
+
+    container.appendChild(badge);
+  });
 }
 
 function handleCardClick(id) {
@@ -476,6 +555,7 @@ function handleCardClick(id) {
   updateCard(id);
   updateDependents(id);
   drawArrows();
+  updateMilestones();
 }
 
 function resetProgress() {
@@ -484,6 +564,198 @@ function resetProgress() {
   saveProgress();
   renderSemesters();
   drawArrows();
+  updateMilestones();
+}
+
+function getBasePath(url) {
+  const normalized = String(url || "").replace(/\\/g, "/");
+  const index = normalized.lastIndexOf("/");
+  if (index === -1) return "";
+  return normalized.slice(0, index + 1);
+}
+
+function joinPath(basePath, file) {
+  if (!file) return "";
+  if (/^https?:\/\//i.test(file) || file.startsWith("/")) return file;
+  return `${basePath}${file}`;
+}
+
+function resolveCatalogUrl() {
+  return document.body?.dataset.catalog || DEFAULT_CATALOG_URL;
+}
+
+function resolveFallbackPlanUrl() {
+  return document.body?.dataset.plan || DEFAULT_PLAN_URL;
+}
+
+function normalizeCatalogEntry(raw, basePath) {
+  if (!raw || typeof raw !== "object") return null;
+
+  const materiasUrl = String(raw.materias || raw.materiasUrl || raw.plan || "").trim();
+  const metadataUrl = String(raw.metadata || raw.metadataUrl || "").trim();
+  if (!materiasUrl) return null;
+
+  const slug = String(raw.slug || toPlanSlug(materiasUrl)).trim() || toPlanSlug(materiasUrl);
+  const carrera = String(raw.carrera || raw.nombre || humanizeSlug(slug)).trim();
+
+  return {
+    slug,
+    carrera,
+    materiasUrl: joinPath(basePath, materiasUrl),
+    metadataUrl: metadataUrl ? joinPath(basePath, metadataUrl) : ""
+  };
+}
+
+function fallbackCatalogFromPlanUrl(planUrl) {
+  const slug = toPlanSlug(planUrl);
+  return [
+    {
+      slug,
+      carrera: humanizeSlug(slug),
+      materiasUrl: planUrl,
+      metadataUrl: planUrl.replace(/\.materias\.json$/i, ".json")
+    }
+  ];
+}
+
+async function fetchJson(url, label) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`No se pudo cargar ${label}: ${url} (HTTP ${response.status}).`);
+  }
+  return response.json();
+}
+
+async function loadPlanCatalog() {
+  const catalogUrl = resolveCatalogUrl();
+  const fallback = fallbackCatalogFromPlanUrl(resolveFallbackPlanUrl());
+
+  try {
+    const payload = await fetchJson(catalogUrl, "catálogo de carreras");
+    const rawEntries = Array.isArray(payload) ? payload : Array.isArray(payload?.carreras) ? payload.carreras : [];
+    const basePath = getBasePath(catalogUrl);
+
+    const catalog = rawEntries
+      .map((entry) => normalizeCatalogEntry(entry, basePath))
+      .filter(Boolean);
+
+    return catalog.length > 0 ? catalog : fallback;
+  } catch (error) {
+    console.warn(error);
+    return fallback;
+  }
+}
+
+function populateCareerSelect(catalog, selectedSlug) {
+  const select = document.getElementById("career-select");
+  if (!select) return;
+
+  select.innerHTML = "";
+  catalog.forEach((plan) => {
+    const option = document.createElement("option");
+    option.value = plan.slug;
+    option.textContent = plan.carrera;
+    select.appendChild(option);
+  });
+
+  if (selectedSlug) {
+    select.value = selectedSlug;
+  } else if (catalog[0]) {
+    select.value = catalog[0].slug;
+  }
+
+  select.disabled = catalog.length <= 1;
+}
+
+async function loadPlanData(plan) {
+  const rawMaterias = await fetchJson(plan.materiasUrl, "plan de materias");
+  if (!Array.isArray(rawMaterias)) {
+    throw new Error("El JSON de materias debe ser un array.");
+  }
+
+  const materias = rawMaterias
+    .map(normalizeMateria)
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a.cuatrimestre !== b.cuatrimestre) return a.cuatrimestre - b.cuatrimestre;
+      return a.id.localeCompare(b.id);
+    });
+
+  if (materias.length === 0) {
+    throw new Error("El plan JSON no contiene materias válidas.");
+  }
+
+  let metadata = null;
+  if (plan.metadataUrl) {
+    try {
+      metadata = await fetchJson(plan.metadataUrl, "metadata de carrera");
+    } catch (error) {
+      console.warn(error);
+    }
+  }
+
+  return { materias, metadata };
+}
+
+async function activatePlan(plan, allowDemoFallback = false) {
+  try {
+    const { materias, metadata } = await loadPlanData(plan);
+
+    ACTIVE_PLAN = plan;
+    ACTIVE_PLAN_META = metadata || { carrera: plan.carrera, hitos: [] };
+
+    setStorageKeyForSlug(plan.slug);
+    setMaterias(materias);
+    progress = loadProgress();
+    if (normalizeProgressState()) saveProgress();
+
+    setCareerTitle(ACTIVE_PLAN_META.carrera || plan.carrera);
+    setSubtitle(`Plan cargado (${MATERIAS.length} materias). Hacé clic en cada materia para registrar tu progreso.`);
+    safeStorageSet(SELECTED_PLAN_KEY, plan.slug);
+
+    renderSemesters();
+    drawArrows();
+    updateMilestones();
+
+    return true;
+  } catch (error) {
+    console.error(error);
+
+    if (!allowDemoFallback) {
+      showToast("No se pudo cargar la carrera seleccionada.");
+      return false;
+    }
+
+    ACTIVE_PLAN = {
+      slug: "demo",
+      carrera: "Demo mínima",
+      materiasUrl: "",
+      metadataUrl: ""
+    };
+    ACTIVE_PLAN_META = {
+      carrera: "Demo mínima",
+      hitos: [
+        {
+          tipo: "titulo_final",
+          nombre: "Plan completo",
+          criterio: { tipo: "plan_completo" }
+        }
+      ]
+    };
+    setStorageKeyForSlug("demo");
+    setMaterias(FALLBACK_MATERIAS);
+    progress = loadProgress();
+    if (normalizeProgressState()) saveProgress();
+
+    setCareerTitle("Demo mínima");
+    setSubtitle("No se pudo cargar el catálogo/plan. Se muestra la demo mínima.");
+    showToast("Error cargando archivos JSON. Revisá data/planes/catalog.json.");
+
+    renderSemesters();
+    drawArrows();
+    updateMilestones();
+    return false;
+  }
 }
 
 function bindUiEvents() {
@@ -498,6 +770,21 @@ function bindUiEvents() {
 
   const themeButton = document.getElementById("btn-theme");
   if (themeButton) themeButton.addEventListener("click", toggleTheme);
+
+  const careerSelect = document.getElementById("career-select");
+  if (careerSelect) {
+    careerSelect.addEventListener("change", async (event) => {
+      const nextSlug = String(event.target.value);
+      const selected = PLAN_CATALOG.find((item) => item.slug === nextSlug);
+      if (!selected) return;
+
+      const currentSlug = ACTIVE_PLAN?.slug || "";
+      const ok = await activatePlan(selected, false);
+      if (!ok) {
+        event.target.value = currentSlug;
+      }
+    });
+  }
 }
 
 async function init() {
@@ -507,25 +794,15 @@ async function init() {
   if (svg) buildDefs(svg);
   bindUiEvents();
 
-  let loadInfo = null;
-  try {
-    loadInfo = await loadPlanFromJson();
-    setSubtitle(`Plan cargado (${loadInfo.count} materias). Hacé clic en cada materia para registrar tu progreso.`);
-  } catch (error) {
-    console.error(error);
-    setStorageKey("demo");
-    setMaterias(FALLBACK_MATERIAS);
-    setSubtitle("No se pudo cargar el JSON del plan. Se muestra la demo mínima.");
-    showToast("Error cargando plan JSON. Revisá la ruta data-plan en index.html.");
-  }
+  PLAN_CATALOG = await loadPlanCatalog();
 
-  progress = loadProgress();
-  if (normalizeProgressState()) saveProgress();
-  renderSemesters();
+  const savedSlug = safeStorageGet(SELECTED_PLAN_KEY);
+  const selectedPlan =
+    PLAN_CATALOG.find((plan) => plan.slug === savedSlug) ||
+    PLAN_CATALOG[0];
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(drawArrows);
-  });
+  populateCareerSelect(PLAN_CATALOG, selectedPlan?.slug);
+  await activatePlan(selectedPlan, true);
 }
 
 init();

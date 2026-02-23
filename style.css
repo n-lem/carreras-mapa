@@ -10,6 +10,12 @@
   --semester-label: #64748b;
   --toast-bg: #1e293b;
   --toast-text: #f8fafc;
+  --milestone-bg: #e2e8f0;
+  --milestone-border: #cbd5e1;
+  --milestone-text: #334155;
+  --milestone-ok-bg: #dcfce7;
+  --milestone-ok-border: #22c55e;
+  --milestone-ok-text: #14532d;
 
   --color-pending-bg: #e2e8f0;
   --color-pending-border: #94a3b8;
@@ -47,6 +53,12 @@ body[data-theme="dark"] {
   --semester-label: #94a3b8;
   --toast-bg: #020617;
   --toast-text: #e2e8f0;
+  --milestone-bg: #1e293b;
+  --milestone-border: #334155;
+  --milestone-text: #cbd5e1;
+  --milestone-ok-bg: #0f2f1f;
+  --milestone-ok-border: #22c55e;
+  --milestone-ok-text: #bbf7d0;
 
   --color-pending-bg: #1e293b;
   --color-pending-border: #475569;
@@ -100,6 +112,41 @@ header h1 { font-size: 1.4rem; font-weight: 700; }
   flex: 1 1 auto;
 }
 
+.career-name {
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--header-text);
+  opacity: .9;
+}
+
+.career-picker {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.career-picker label {
+  font-size: .8rem;
+  color: var(--subtitle);
+  font-weight: 600;
+}
+
+.career-picker select {
+  border: 1px solid #64748b;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  border-radius: var(--radius);
+  padding: .35rem .5rem;
+  font-size: .8rem;
+  min-width: 250px;
+}
+
+body[data-theme="dark"] .career-picker select {
+  border-color: #475569;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
 .legend {
   display: flex;
   gap: .5rem;
@@ -144,6 +191,35 @@ header h1 { font-size: 1.4rem; font-weight: 700; }
 }
 
 #btn-reset:hover { background: var(--btn-danger-bg-hover); }
+
+/* ── Milestones ───────────────────────────────────────────── */
+.milestones {
+  max-width: 960px;
+  margin: .75rem auto 0;
+  padding: 0 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.milestone-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  border-radius: 999px;
+  padding: .35rem .7rem;
+  font-size: .75rem;
+  font-weight: 600;
+  border: 1px solid var(--milestone-border);
+  background: var(--milestone-bg);
+  color: var(--milestone-text);
+}
+
+.milestone-badge.achieved {
+  border-color: var(--milestone-ok-border);
+  background: var(--milestone-ok-bg);
+  color: var(--milestone-ok-text);
+}
 
 /* ── Diagram container ────────────────────────────────────── */
 main { padding: 2rem 1rem 4rem; }
@@ -315,7 +391,17 @@ main { padding: 2rem 1rem 4rem; }
 
   .subtitle {
     flex-basis: 100%;
+    order: 6;
+  }
+
+  .career-picker {
+    width: 100%;
     order: 5;
+  }
+
+  .career-picker select {
+    min-width: 0;
+    width: 100%;
   }
 }
 

@@ -26,3 +26,6 @@ python tools/pdf_to_plan_json.py --input "C:\\Users\\nahuel\\Downloads\\planes" 
 Salidas por PDF:
 - `<slug>.json`: metadata + materias + hitos.
 - `<slug>.materias.json`: array listo para la web (`id`, `nombre`, `cuatrimestre`, `correlativas`).
+
+Además se genera/actualiza:
+- `catalog.json`: catálogo de carreras para que la web muestre selector dinámico (aunque ya no esté el PDF fuente).

@@ -243,7 +243,7 @@ def extract_career_name(full_text: str, fallback: str) -> str:
     # Keep line breaks to avoid swallowing extra paragraphs.
     match = re.search(r"Licenciatura en\s*([^\n\r]+)", text, flags=re.IGNORECASE)
     if match:
-        return clean_name(match.group(1))
+        return clean_name(f"Licenciatura en {match.group(1)}")
     return fallback
 
 
@@ -257,6 +257,18 @@ def extract_intermediate_title(full_text: str) -> str | None:
                 return clean_name(candidate)
         return clean_name(matches[-1])
     return None
+
+
+def extract_final_title(full_text: str) -> str | None:
+    text = unicodedata.normalize("NFKC", full_text or "")
+    match = re.search(
+        r"Licenciada/o en\s*([^\n\r(]+)\s*\((\d+\s*hs)\)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    return clean_name(f"Licenciada/o en {match.group(1)} ({match.group(2)})")
 
 
 def parse_courses(rows: list[Row], split_map: dict[int, int]) -> list[dict]:
@@ -368,6 +380,7 @@ def process_pdf(pdf_path: Path, output_dir: Path, split_map: dict[int, int], ver
 
     career_name = extract_career_name(full_text, fallback=pdf_path.stem)
     intermediate_title = extract_intermediate_title(full_text)
+    final_title = extract_final_title(full_text)
     materias = parse_courses(rows, split_map=split_map)
 
     if not materias:
@@ -391,8 +404,22 @@ def process_pdf(pdf_path: Path, output_dir: Path, split_map: dict[int, int], ver
                 "tipo": "titulo_intermedio",
                 "nombre": intermediate_title,
                 "anio_estimado": 3,
+                "criterio": {
+                    "tipo": "cuatrimestre_max",
+                    "valor": 6,
+                },
             }
         )
+
+    payload["hitos"].append(
+        {
+            "tipo": "titulo_final",
+            "nombre": final_title or "Plan completo",
+            "criterio": {
+                "tipo": "plan_completo",
+            },
+        }
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     metadata_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -412,6 +439,63 @@ def process_pdf(pdf_path: Path, output_dir: Path, split_map: dict[int, int], ver
         print(f"[OK] {pdf_path.name} -> {materias_path.name} ({len(web_payload)} materias)")
 
     return metadata_path, materias_path
+
+
+def write_catalog(output_dir: Path) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    selected_by_key: dict[str, dict] = {}
+    for metadata_path in sorted(output_dir.glob("*.json")):
+        if metadata_path.name.endswith(".materias.json"):
+            continue
+        if metadata_path.name == "catalog.json":
+            continue
+
+        slug = metadata_path.stem
+        materias_path = output_dir / f"{slug}.materias.json"
+        if not materias_path.exists():
+            continue
+
+        try:
+            payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        carrera = clean_name(str(payload.get("carrera", slug)))
+        source_key = clean_name(str(payload.get("fuente_pdf", ""))).lower() or slug
+        generated_at = str(payload.get("generado_en_utc", ""))
+        candidate = {
+            "slug": slug,
+            "carrera": carrera,
+            "materias": materias_path.name,
+            "metadata": metadata_path.name,
+            "_generated": generated_at,
+        }
+
+        current = selected_by_key.get(source_key)
+        if current is None or candidate["_generated"] > current["_generated"]:
+            selected_by_key[source_key] = candidate
+
+    entries = []
+    for item in selected_by_key.values():
+        entries.append(
+            {
+                "slug": item["slug"],
+                "carrera": item["carrera"],
+                "materias": item["materias"],
+                "metadata": item["metadata"],
+            }
+        )
+
+    entries.sort(key=lambda item: item["carrera"].lower())
+
+    catalog_payload = {
+        "generado_en_utc": datetime.now(timezone.utc).isoformat(),
+        "carreras": entries,
+    }
+    catalog_path = output_dir / "catalog.json"
+    catalog_path.write_text(json.dumps(catalog_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return catalog_path
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -475,7 +559,9 @@ def main() -> int:
         print(f"Procesados con errores: {failures}/{len(pdf_files)}", file=sys.stderr)
         return 2
 
+    catalog_path = write_catalog(output_dir)
     print(f"Procesados OK: {len(pdf_files)} PDF(s). Salida: {output_dir}")
+    print(f"Catálogo actualizado: {catalog_path}")
     return 0
 
 
