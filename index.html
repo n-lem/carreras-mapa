@@ -29,31 +29,16 @@
         <label for="career-select">Carrera</label>
         <select id="career-select" aria-label="Seleccionar carrera"></select>
       </div>
-      <div class="header-actions">
-        <div class="legend">
-          <span class="legend-item pending">Pendiente</span>
-          <span class="legend-item regular">Regular</span>
-          <span class="legend-item approved">Aprobada</span>
-        </div>
-        <div class="tools-wrap">
-          <button id="btn-tools" type="button" title="Abrir herramientas" aria-controls="tools-menu" aria-expanded="false">
-            <span class="tools-icon" aria-hidden="true">⚙</span>
-            <span class="tools-label">Herramientas</span>
-          </button>
-          <div id="tools-menu" class="tools-menu" hidden>
-            <button id="btn-theme" type="button" title="Cambiar tema">Modo oscuro</button>
-            <button id="btn-export" type="button" title="Descargar progreso actual">Exportar progreso</button>
-            <button id="btn-import" type="button" title="Importar progreso desde archivo">Importar progreso</button>
-            <button id="btn-print" type="button" title="Imprimir plan">Imprimir (modo claro)</button>
-          </div>
-        </div>
-        <button id="btn-reset" title="Borrar todo el progreso guardado">
-          <span aria-hidden="true">↺</span>
-          <span>Reiniciar progreso</span>
-        </button>
-      </div>
     </div>
   </header>
+  <div class="tools-popover-root">
+    <div id="tools-menu" class="tools-menu" hidden>
+      <button id="btn-theme" type="button" title="Cambiar tema">Modo oscuro</button>
+      <button id="btn-export" type="button" title="Descargar progreso actual">Exportar progreso</button>
+      <button id="btn-import" type="button" title="Importar progreso desde archivo">Importar progreso</button>
+      <button id="btn-print" type="button" title="Imprimir plan">Imprimir (modo claro)</button>
+    </div>
+  </div>
   <section id="career-hero" class="career-hero" aria-live="polite"></section>
   <section id="career-progress-floating" class="career-progress-floating" aria-live="polite"></section>
 

@@ -182,14 +182,42 @@ function setCareerFabOpen(open) {
   button.setAttribute("aria-expanded", String(nextOpen));
 }
 
+function positionToolsMenu(button, menu) {
+  if (!button || !menu) return;
+
+  menu.style.position = "fixed";
+  menu.style.top = "0px";
+  menu.style.left = "0px";
+
+  const btnRect = button.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+
+  let left = btnRect.right - menuRect.width;
+  left = Math.max(8, Math.min(left, window.innerWidth - menuRect.width - 8));
+
+  let top = btnRect.bottom + 8;
+  if (top + menuRect.height > window.innerHeight - 8) {
+    top = Math.max(8, btnRect.top - menuRect.height - 8);
+  }
+
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+}
+
 function setToolsMenuOpen(open) {
   const menu = document.getElementById("tools-menu");
   const button = document.getElementById("btn-tools");
-  if (!menu || !button) return;
+  if (!menu) return;
 
-  toolsMenuOpen = Boolean(open);
+  toolsMenuOpen = Boolean(open && button);
   menu.hidden = !toolsMenuOpen;
-  button.setAttribute("aria-expanded", String(toolsMenuOpen));
+  if (button) {
+    button.setAttribute("aria-expanded", String(toolsMenuOpen));
+  }
+
+  if (toolsMenuOpen && button) {
+    positionToolsMenu(button, menu);
+  }
 }
 
 function isOnboardingDismissed() {
@@ -810,17 +838,20 @@ function milestoneProgress(milestone) {
 function careerProgressInfo() {
   const total = MATERIAS.length;
   const approved = MATERIAS.filter((materia) => getState(materia.id) === 2).length;
+  const regular = MATERIAS.filter((materia) => getState(materia.id) === 1).length;
+  const pending = Math.max(0, total - approved - regular);
   const percentage = total > 0 ? Math.round((approved / total) * 100) : 0;
-  return { total, approved, percentage };
+  return { total, approved, regular, pending, percentage };
 }
 
 function updateCareerProgress() {
   const container = document.getElementById("career-progress-floating");
   if (!container) return;
 
-  const { total, approved, percentage } = careerProgressInfo();
+  const { total, approved, regular, pending, percentage } = careerProgressInfo();
   if (total === 0) {
     container.innerHTML = "";
+    setToolsMenuOpen(false);
     return;
   }
 
@@ -828,6 +859,45 @@ function updateCareerProgress() {
 
   const box = document.createElement("div");
   box.className = "career-progress-box";
+
+  const topRow = document.createElement("div");
+  topRow.className = "career-progress-top";
+
+  const careerTitle = document.createElement("h3");
+  careerTitle.className = "career-progress-career";
+  careerTitle.textContent = ACTIVE_PLAN_META?.carrera || ACTIVE_PLAN?.carrera || "Carrera";
+  topRow.appendChild(careerTitle);
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "career-progress-toolbar";
+
+  const toolsButton = document.createElement("button");
+  toolsButton.id = "btn-tools";
+  toolsButton.type = "button";
+  toolsButton.className = "progress-icon-btn";
+  toolsButton.title = "Herramientas";
+  toolsButton.setAttribute("aria-label", "Abrir herramientas");
+  toolsButton.setAttribute("aria-controls", "tools-menu");
+  toolsButton.setAttribute("aria-expanded", String(toolsMenuOpen));
+  toolsButton.textContent = "⚙";
+  toolsButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setToolsMenuOpen(!toolsMenuOpen);
+  });
+  toolbar.appendChild(toolsButton);
+
+  const resetButton = document.createElement("button");
+  resetButton.id = "btn-reset";
+  resetButton.type = "button";
+  resetButton.className = "progress-icon-btn danger";
+  resetButton.title = "Reiniciar progreso";
+  resetButton.setAttribute("aria-label", "Reiniciar progreso");
+  resetButton.textContent = "↺";
+  resetButton.addEventListener("click", resetProgress);
+  toolbar.appendChild(resetButton);
+
+  topRow.appendChild(toolbar);
+  box.appendChild(topRow);
 
   const head = document.createElement("div");
   head.className = "career-progress-head";
@@ -844,6 +914,26 @@ function updateCareerProgress() {
 
   box.appendChild(head);
 
+  const states = document.createElement("div");
+  states.className = "career-progress-states";
+
+  const pendingBadge = document.createElement("span");
+  pendingBadge.className = "state-pill pending";
+  pendingBadge.textContent = `Pendiente ${pending}`;
+  states.appendChild(pendingBadge);
+
+  const regularBadge = document.createElement("span");
+  regularBadge.className = "state-pill regular";
+  regularBadge.textContent = `Regular ${regular}`;
+  states.appendChild(regularBadge);
+
+  const approvedBadge = document.createElement("span");
+  approvedBadge.className = "state-pill approved";
+  approvedBadge.textContent = `Aprobada ${approved}`;
+  states.appendChild(approvedBadge);
+
+  box.appendChild(states);
+
   const track = document.createElement("div");
   track.className = "career-progress-track";
 
@@ -855,6 +945,10 @@ function updateCareerProgress() {
   track.appendChild(fill);
   box.appendChild(track);
   container.appendChild(box);
+
+  if (toolsMenuOpen) {
+    setToolsMenuOpen(true);
+  }
 }
 
 function updateMilestones(options = {}) {
@@ -974,6 +1068,7 @@ function handleCardClick(id) {
 }
 
 function resetProgress() {
+  setToolsMenuOpen(false);
   if (!confirm("¿Seguro que querés borrar todo el progreso guardado?")) return;
   progress = {};
   clearAchievementNotifications();
@@ -1300,12 +1395,9 @@ function bindUiEvents() {
     resizeTimer = setTimeout(() => {
       drawArrows();
       if (window.innerWidth > 768) setCareerFabOpen(false);
-      setToolsMenuOpen(false);
+      if (toolsMenuOpen) setToolsMenuOpen(true);
     }, 80);
   });
-
-  const resetButton = document.getElementById("btn-reset");
-  if (resetButton) resetButton.addEventListener("click", resetProgress);
 
   const themeButton = document.getElementById("btn-theme");
   if (themeButton) {
@@ -1333,14 +1425,6 @@ function bindUiEvents() {
       const file = target.files?.[0];
       await importProgressFromFile(file);
       target.value = "";
-    });
-  }
-
-  const toolsButton = document.getElementById("btn-tools");
-  if (toolsButton) {
-    toolsButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      setToolsMenuOpen(!toolsMenuOpen);
     });
   }
 
@@ -1388,8 +1472,8 @@ function bindUiEvents() {
     const target = event.target;
     if (!(target instanceof Node)) return;
     const toolsMenu = document.getElementById("tools-menu");
-    const toolsBtn = document.getElementById("btn-tools");
-    if (toolsMenuOpen && toolsMenu && toolsBtn && !toolsMenu.contains(target) && !toolsBtn.contains(target)) {
+    const toolsBtn = target instanceof Element ? target.closest("#btn-tools") : null;
+    if (toolsMenuOpen && toolsMenu && !toolsMenu.contains(target) && !toolsBtn) {
       setToolsMenuOpen(false);
     }
 
