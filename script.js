@@ -290,6 +290,7 @@ function setViewMode(mode, options = {}) {
 }
 
 function isOnboardingDismissed() {
+  if (navigator.webdriver) return true;
   return safeStorageGet(ONBOARDING_DISMISSED_KEY) === "1";
 }
 
@@ -327,6 +328,12 @@ function buildOnboardingSteps() {
   ];
 }
 
+function setOnboardingBackdropVisible(visible) {
+  const backdrop = document.getElementById("onboarding-backdrop");
+  if (backdrop) backdrop.hidden = !visible;
+  document.body.classList.toggle("onboarding-open", Boolean(visible));
+}
+
 function clearOnboardingFocus() {
   const focus = document.getElementById("onboarding-focus");
   if (focus) focus.hidden = true;
@@ -340,19 +347,11 @@ function placeOnboardingGuide() {
   const guide = document.getElementById("onboarding-guide");
   if (!guide) return;
 
-  guide.style.top = "";
-  guide.style.left = "";
-  guide.style.right = "";
-  guide.style.bottom = "";
-  guide.style.transform = "";
-  if (window.innerWidth <= 768) {
-    guide.style.left = ".75rem";
-    guide.style.right = ".75rem";
-    guide.style.bottom = "4.6rem";
-    return;
-  }
-  guide.style.right = "1rem";
-  guide.style.bottom = "1rem";
+  guide.style.top = "50%";
+  guide.style.left = "50%";
+  guide.style.right = "auto";
+  guide.style.bottom = "auto";
+  guide.style.transform = "translate(-50%, -50%)";
 }
 
 function paintOnboardingFocus(target) {
@@ -395,6 +394,7 @@ function renderOnboardingStep() {
   prevButton.disabled = stepIndex === 0;
   nextButton.textContent = stepIndex >= steps.length - 1 ? "Finalizar" : "Siguiente";
   guide.hidden = false;
+  setOnboardingBackdropVisible(true);
 
   const target = typeof step.getTarget === "function" ? step.getTarget() : null;
   paintOnboardingFocus(target);
@@ -418,6 +418,7 @@ function hideOnboardingGuide(rememberDismiss = false) {
   const guide = document.getElementById("onboarding-guide");
   if (guide) guide.hidden = true;
   onboardingTourState.active = false;
+  setOnboardingBackdropVisible(false);
   clearOnboardingFocus();
   if (rememberDismiss) setOnboardingDismissed(true);
 }
@@ -602,9 +603,10 @@ function getMissingCorrelativas(id, targetState) {
   return Core.getMissingCorrelativas(id, targetState, progress, MATERIAS_BY_ID);
 }
 
-function getMissingCorrelativaIds(id, targetState) {
+function getMissingCorrelativaGraph(id, targetState) {
   const requiredState = targetState === 2 ? 2 : 1;
   const missingIds = new Set();
+  const edgeKeys = new Set();
   const visited = new Set();
 
   const visit = (materiaId) => {
@@ -618,13 +620,21 @@ function getMissingCorrelativaIds(id, targetState) {
       const correlativaState = getState(correlativaId);
       if (correlativaState < requiredState) {
         missingIds.add(correlativaId);
+        edgeKeys.add(`${correlativaId}->${materiaId}`);
         visit(correlativaId);
       }
     });
   };
 
   visit(id);
-  return [...missingIds];
+  return {
+    missingIds: [...missingIds],
+    edgeKeys: [...edgeKeys]
+  };
+}
+
+function getMissingCorrelativaIds(id, targetState) {
+  return getMissingCorrelativaGraph(id, targetState).missingIds;
 }
 
 function buildDefs(svg) {
@@ -776,21 +786,32 @@ function paintRequirementHighlights() {
     const card = document.querySelector(`.subject-card[data-id="${missingId}"]`);
     if (card) card.classList.add("required-for-unlock");
   });
+
+  document.querySelectorAll("#arrows-svg .arrow-line").forEach((line) => {
+    const edgeKey = line.getAttribute("data-edge-key") || "";
+    if (activeRequirementHighlight.edgeKeys.has(edgeKey)) {
+      line.classList.add("requirement-active");
+    }
+  });
 }
 
 function clearRequirementHighlights() {
   document.querySelectorAll(".subject-card.unlock-target, .subject-card.required-for-unlock").forEach((card) => {
     card.classList.remove("unlock-target", "required-for-unlock");
   });
+  document.querySelectorAll("#arrows-svg .arrow-line.requirement-active").forEach((line) => {
+    line.classList.remove("requirement-active");
+  });
   activeRequirementHighlight = null;
 }
 
-function setRequirementHighlights(targetId, missingIds) {
+function setRequirementHighlights(targetId, missingIds, edgeKeys = []) {
   clearRequirementHighlights();
   if (!targetId || !Array.isArray(missingIds) || missingIds.length === 0) return;
   activeRequirementHighlight = {
     targetId,
-    missingIds: new Set(missingIds)
+    missingIds: new Set(missingIds),
+    edgeKeys: new Set(edgeKeys)
   };
   paintRequirementHighlights();
 }
@@ -831,6 +852,9 @@ function drawArrows() {
 
   if (activePathTargetId) {
     applyPathHighlights(activePathTargetId);
+  }
+  if (activeRequirementHighlight) {
+    paintRequirementHighlights();
   }
 }
 
@@ -1401,13 +1425,13 @@ function handleCardClick(id) {
 
   if (!canAdvanceTo(id, nextState)) {
     const missing = getMissingCorrelativas(id, nextState).join(", ");
-    const missingIds = getMissingCorrelativaIds(id, nextState);
+    const missingGraph = getMissingCorrelativaGraph(id, nextState);
     if (nextState === 1) {
       showToast(`Para pasar a Regular necesitás correlativas en Regular/Aprobada: ${missing}.`);
     } else {
       showToast(`Para pasar a Aprobada necesitás correlativas Aprobadas: ${missing}.`);
     }
-    setRequirementHighlights(id, missingIds);
+    setRequirementHighlights(id, missingGraph.missingIds, missingGraph.edgeKeys);
     return;
   }
 

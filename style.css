@@ -918,6 +918,12 @@ body[data-theme="dark"] .semester-label {
   stroke-dasharray: none !important;
 }
 
+.arrow-line.requirement-active {
+  stroke-width: 2.8 !important;
+  stroke-opacity: .95 !important;
+  stroke-dasharray: none !important;
+}
+
 /* ── PNG Export ───────────────────────────────────────────── */
 .png-export-sandbox {
   position: fixed;
@@ -988,11 +994,14 @@ body[data-theme="dark"] .semester-label {
 /* ── Onboarding / footer ─────────────────────────────────── */
 .onboarding-guide {
   position: fixed;
-  right: 1rem;
-  left: auto;
-  bottom: 1rem;
-  transform: none;
-  width: min(380px, calc(100vw - 1.5rem));
+  top: 50%;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  width: min(460px, calc(100vw - 1.5rem));
+  max-height: min(82vh, 560px);
+  overflow: auto;
   background: var(--milestone-bg);
   color: var(--milestone-text);
   border: 1px solid var(--milestone-border);
@@ -1004,8 +1013,8 @@ body[data-theme="dark"] .semester-label {
 }
 
 @keyframes onboarding-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
 }
 
 .onboarding-step-head {
@@ -1080,6 +1089,20 @@ body[data-theme="dark"] .semester-label {
 .onboarding-target {
   position: relative;
   z-index: 9796 !important;
+}
+
+.onboarding-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9790;
+  pointer-events: auto;
+  background: rgba(15, 23, 42, .36);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+body.onboarding-open {
+  overflow: hidden;
 }
 
 .site-footer {
@@ -1230,10 +1253,7 @@ body[data-theme="dark"] .semester-label {
   }
 
   .onboarding-guide {
-    right: .75rem;
-    left: .75rem;
-    width: auto;
-    bottom: 4.6rem;
+    width: min(460px, calc(100vw - 1.5rem));
   }
 }
 
@@ -1328,6 +1348,7 @@ body[data-theme="dark"] .semester-label {
   .career-progress-floating,
   .achievement-stack,
   .onboarding-guide,
+  .onboarding-backdrop,
   .onboarding-focus,
   .view-mode-toggle,
   #toast,
