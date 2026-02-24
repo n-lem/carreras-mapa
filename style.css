@@ -1223,20 +1223,6 @@ body[data-theme="dark"] .semester-label {
   z-index: 9796 !important;
 }
 
-.onboarding-focus-clone {
-  position: fixed;
-  pointer-events: none;
-  z-index: 9796;
-  overflow: hidden;
-  border-radius: 10px;
-}
-
-.onboarding-focus-clone > * {
-  width: 100% !important;
-  height: 100% !important;
-  margin: 0 !important;
-}
-
 .onboarding-backdrop {
   position: fixed;
   inset: 0;
@@ -1513,7 +1499,6 @@ body.onboarding-open .career-fab-panel {
   .achievement-stack,
   .onboarding-guide,
   .onboarding-backdrop,
-  .onboarding-focus-clone,
   .onboarding-focus,
   .view-mode-toggle,
   #toast,

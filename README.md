@@ -16,6 +16,17 @@ Mapa de correlatividades para carreras UNPAZ.
 - Exportación del mapa a PNG desde `Herramientas -> Guardar como PNG`.
 - Modo impresión en claro.
 - Catálogo dinámico de carreras (`data/planes/catalog.json`).
+- Selector de vistas: `Diagrama`, `Lista`, `Programas`, `Enlaces`.
+- En `Programas` se listan materias por cuatrimestre y cada una puede tener link a su PDF/programa.
+- En `Enlaces` se muestran links útiles de la carrera (si no hay metadata, se muestran ejemplos por defecto).
+
+## Catálogo incluido en el repo
+
+El `catalog.json` del repositorio está preparado con 3 carreras de ejemplo:
+
+- Licenciatura en Gestión de Tecnologías de la Información
+- Ingeniería en Informática
+- Licenciatura en Producción y Desarrollo de Videojuegos
 
 ## Flujo para agregar carreras desde PDF
 
@@ -87,6 +98,11 @@ npm run test:e2e
 Por carrera:
 - `<slug>.json`: metadata + hitos.
 - `<slug>.materias.json`: materias para la UI.
+  - En metadata también podés definir:
+    - `programas` o `programas_por_materia` (links por materia)
+    - `programas_base_url` (base para autogenerar `<id>.pdf`)
+    - `enlaces` o `links` (sitios de interés)
+    - `programasOcultarNoDisponibles` (`true/false`)
 
 Global:
 - `catalog.json`: lista de carreras disponibles en el selector.

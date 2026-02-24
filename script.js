@@ -329,7 +329,7 @@ function buildOnboardingSteps() {
     {
       title: "Cambio por cuatrimestre",
       body: "Tocá el título del cuatrimestre para cambiar todas las materias de ese bloque.",
-      getTarget: () => document.querySelector(".semester-label, .semester-accordion-summary")
+      getTarget: () => document.querySelector(".semester-block, .semester-accordion-summary")
     },
     {
       title: "Herramientas",
@@ -353,11 +353,6 @@ function setOnboardingBackdropVisible(visible) {
 function clearOnboardingFocus() {
   const focus = document.getElementById("onboarding-focus");
   if (focus) focus.hidden = true;
-  const clone = document.getElementById("onboarding-focus-clone");
-  if (clone) {
-    clone.hidden = true;
-    clone.innerHTML = "";
-  }
   if (onboardingFocusedElement) {
     onboardingFocusedElement.classList.remove("onboarding-target");
     onboardingFocusedElement = null;
@@ -465,12 +460,6 @@ function placeOnboardingGuide(target) {
   guide.style.left = `${Math.round(best?.left ?? margin)}px`;
 }
 
-function stripCloneIds(node) {
-  if (!(node instanceof Element)) return;
-  if (node.id) node.removeAttribute("id");
-  node.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
-}
-
 function paintOnboardingFocus(target) {
   clearOnboardingFocus();
   if (!target) return;
@@ -488,19 +477,6 @@ function paintOnboardingFocus(target) {
   focus.style.width = `${Math.max(10, rect.width + pad * 2)}px`;
   focus.style.height = `${Math.max(10, rect.height + pad * 2)}px`;
   focus.hidden = false;
-
-  const cloneHost = document.getElementById("onboarding-focus-clone");
-  if (!cloneHost) return;
-
-  const clone = target.cloneNode(true);
-  stripCloneIds(clone);
-  cloneHost.innerHTML = "";
-  cloneHost.appendChild(clone);
-  cloneHost.style.top = `${Math.round(rect.top)}px`;
-  cloneHost.style.left = `${Math.round(rect.left)}px`;
-  cloneHost.style.width = `${Math.round(rect.width)}px`;
-  cloneHost.style.height = `${Math.round(rect.height)}px`;
-  cloneHost.hidden = false;
 }
 
 function renderOnboardingStep() {
