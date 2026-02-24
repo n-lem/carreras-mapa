@@ -1208,6 +1208,18 @@ body[data-theme="dark"] .semester-label {
 
 .onboarding-actions button:hover { filter: brightness(.96); }
 
+#btn-onboarding-never {
+  background-color: var(--btn-danger-bg);
+  color: var(--fab-text);
+  border-color: var(--btn-danger-bg);
+}
+
+#btn-onboarding-never:hover {
+  background-color: var(--btn-danger-bg-hover);
+  border-color: var(--btn-danger-bg-hover);
+  filter: none;
+}
+
 .onboarding-focus {
   position: fixed;
   border-radius: 10px;
