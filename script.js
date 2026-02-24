@@ -44,6 +44,7 @@ let blockedHighlightTimer = null;
 let toolsMenuOpen = false;
 let suppressAchievementNotifications = true;
 let activePathTargetId = null;
+let activeRequirementHighlight = null;
 
 /** @type {Record<string, 0|1|2>} */
 let progress = {};
@@ -67,6 +68,15 @@ function safeStorageSet(key, value) {
 
 function unique(items) {
   return [...new Set(items)];
+}
+
+function sanitizeFilenameSegment(value, fallback = "plan") {
+  const normalized = String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return normalized || fallback;
 }
 
 function isPlainObject(value) {
@@ -437,6 +447,17 @@ function getMissingCorrelativas(id, targetState) {
   return Core.getMissingCorrelativas(id, targetState, progress, MATERIAS_BY_ID);
 }
 
+function getMissingCorrelativaIds(id, targetState) {
+  const materia = MATERIAS_BY_ID[id];
+  if (!materia) return [];
+  return materia.correlativas.filter((correlativaId) => {
+    const currentState = getState(correlativaId);
+    if (targetState === 1) return currentState < 1;
+    if (targetState === 2) return currentState !== 2;
+    return false;
+  });
+}
+
 function buildDefs(svg) {
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
 
@@ -553,6 +574,35 @@ function applyPathHighlights(targetId) {
 function clearPathHighlights() {
   activePathTargetId = null;
   clearPathHighlightsDom();
+}
+
+function paintRequirementHighlights() {
+  if (!activeRequirementHighlight) return;
+
+  const targetCard = document.querySelector(`.subject-card[data-id="${activeRequirementHighlight.targetId}"]`);
+  if (targetCard) targetCard.classList.add("unlock-target");
+
+  activeRequirementHighlight.missingIds.forEach((missingId) => {
+    const card = document.querySelector(`.subject-card[data-id="${missingId}"]`);
+    if (card) card.classList.add("required-for-unlock");
+  });
+}
+
+function clearRequirementHighlights() {
+  document.querySelectorAll(".subject-card.unlock-target, .subject-card.required-for-unlock").forEach((card) => {
+    card.classList.remove("unlock-target", "required-for-unlock");
+  });
+  activeRequirementHighlight = null;
+}
+
+function setRequirementHighlights(targetId, missingIds) {
+  clearRequirementHighlights();
+  if (!targetId || !Array.isArray(missingIds) || missingIds.length === 0) return;
+  activeRequirementHighlight = {
+    targetId,
+    missingIds: new Set(missingIds)
+  };
+  paintRequirementHighlights();
 }
 
 function drawArrows() {
@@ -770,6 +820,11 @@ function updateCard(id) {
 
   const status = card.querySelector(".subject-status");
   if (status) status.textContent = STATE_LABELS[state];
+
+  if (activeRequirementHighlight) {
+    if (activeRequirementHighlight.targetId === id) card.classList.add("unlock-target");
+    if (activeRequirementHighlight.missingIds.has(id)) card.classList.add("required-for-unlock");
+  }
 }
 
 function updateDependents(changedId) {
@@ -1053,6 +1108,10 @@ function updateMilestones(options = {}) {
 }
 
 function handleCardClick(id) {
+  if (!activeRequirementHighlight || activeRequirementHighlight.targetId !== id) {
+    clearRequirementHighlights();
+  }
+
   const currentState = getState(id);
   const nextState = (currentState + 1) % 3;
 
@@ -1067,14 +1126,17 @@ function handleCardClick(id) {
 
   if (!canAdvanceTo(id, nextState)) {
     const missing = getMissingCorrelativas(id, nextState).join(", ");
+    const missingIds = getMissingCorrelativaIds(id, nextState);
     if (nextState === 1) {
       showToast(`Para pasar a Regular necesitás correlativas en Regular/Aprobada: ${missing}.`);
     } else {
       showToast(`Para pasar a Aprobada necesitás correlativas Aprobadas: ${missing}.`);
     }
+    setRequirementHighlights(id, missingIds);
     return;
   }
 
+  clearRequirementHighlights();
   progress[id] = nextState;
   saveProgress();
   updateCard(id);
@@ -1089,6 +1151,7 @@ function resetProgress() {
   if (!confirm("¿Seguro que querés borrar todo el progreso guardado?")) return;
   progress = {};
   clearAchievementNotifications();
+  clearRequirementHighlights();
   saveProgress();
   renderSemesters();
   drawArrows();
@@ -1120,7 +1183,18 @@ function exportProgress() {
   URL.revokeObjectURL(url);
 }
 
-function exportAsPng() {
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+async function exportAsPng() {
   setToolsMenuOpen(false);
   const diagram = document.getElementById("diagram-container");
   if (!diagram || typeof html2canvas !== "function") {
@@ -1128,37 +1202,76 @@ function exportAsPng() {
     return;
   }
 
-  showToast("Generando imagen... por favor esperá.");
+  const width = Math.ceil(diagram.scrollWidth || diagram.getBoundingClientRect().width);
+  const height = Math.ceil(diagram.scrollHeight || diagram.getBoundingClientRect().height);
+  if (width < 20 || height < 20) {
+    showToast("No se pudo exportar: el diagrama está vacío.");
+    return;
+  }
 
-  const style = getComputedStyle(document.body);
-  const bgColor = style.getPropertyValue('--bg').trim() || "#f8fafc";
+  const sandbox = document.createElement("div");
+  sandbox.className = "png-export-sandbox";
+  const clone = diagram.cloneNode(true);
+  clone.classList.add("png-export-target");
+  clone.style.width = `${width}px`;
+  clone.style.height = `${height}px`;
+  sandbox.appendChild(clone);
+  document.body.appendChild(sandbox);
 
-  html2canvas(diagram, {
-    logging: false,
-    useCORS: true,
-    backgroundColor: bgColor,
-    onclone: (doc) => {
-      // Forzar el repintado de las flechas en el clon
-      const arrowSvg = doc.getElementById('arrows-svg');
-      if (arrowSvg) {
-        arrowSvg.style.display = 'block';
-      }
-    }
-  }).then(canvas => {
+  const maxPixels = 16_000_000;
+  let scale = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const requiredPixels = width * height * scale * scale;
+  if (requiredPixels > maxPixels) {
+    scale = Math.max(1, Math.sqrt(maxPixels / (width * height)));
+  }
+
+  showToast("Generando PNG... por favor esperá.");
+
+  try {
+    const canvas = await html2canvas(clone, {
+      logging: false,
+      useCORS: false,
+      backgroundColor: "#ffffff",
+      width,
+      height,
+      windowWidth: width,
+      windowHeight: height,
+      scale,
+      removeContainer: true
+    });
+
     const date = new Date().toISOString().slice(0, 10);
-    const filename = `mapa-de-carrera-${ACTIVE_PLAN?.slug || "demo"}-${date}.png`;
-    const url = canvas.toDataURL("image/png");
+    const slug = sanitizeFilenameSegment(ACTIVE_PLAN?.slug || "demo", "plan");
+    const filename = `mapa-de-carrera-${slug}-${date}.png`;
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  }).catch(err => {
+    if (typeof canvas.toBlob === "function") {
+      await new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error("No se pudo serializar la imagen."));
+            return;
+          }
+          downloadBlob(blob, filename);
+          resolve();
+        }, "image/png");
+      });
+    } else {
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    showToast("PNG exportado correctamente.");
+  } catch (err) {
     console.error("Error al generar PNG:", err);
     showToast("Hubo un error al generar la imagen.");
-  });
+  } finally {
+    sandbox.remove();
+  }
 }
 
 async function importProgressFromFile(file) {
@@ -1446,6 +1559,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     progress = loadProgress();
     milestoneStateByKey = {};
     clearAchievementNotifications();
+    clearRequirementHighlights();
     if (normalizeProgressState()) saveProgress();
 
     setCareerTitle(ACTIVE_PLAN_META.carrera || plan.carrera);
@@ -1490,6 +1604,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     progress = loadProgress();
     milestoneStateByKey = {};
     clearAchievementNotifications();
+    clearRequirementHighlights();
     if (normalizeProgressState()) saveProgress();
 
     setCareerTitle("Demo mínima");
@@ -1593,6 +1708,9 @@ function bindUiEvents() {
   document.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof Node)) return;
+    if (!(target instanceof Element) || !target.closest(".subject-card")) {
+      clearRequirementHighlights();
+    }
     const toolsMenu = document.getElementById("tools-menu");
     const toolsBtn = target instanceof Element ? target.closest("#btn-tools") : null;
     if (toolsMenuOpen && toolsMenu && !toolsMenu.contains(target) && !toolsBtn) {
@@ -1610,6 +1728,7 @@ function bindUiEvents() {
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
+    clearRequirementHighlights();
     setToolsMenuOpen(false);
     setCareerFabOpen(false);
   });

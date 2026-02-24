@@ -8,6 +8,7 @@ Mapa de correlatividades para carreras UNPAZ.
 - Exportar/importar progreso por carrera (`JSON`).
 - Click en cuatrimestre con ciclo rápido de estados para todas sus materias.
 - Resaltado de camino de correlativas al pasar/focar una materia.
+- Si intentás activar una materia bloqueada, se resaltan sus correlativas faltantes hasta hacer clic fuera.
 - Panel flotante de progreso con:
   - nombre de carrera
   - contadores `Pendiente/Regular/Aprobada`

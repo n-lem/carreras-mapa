@@ -751,6 +751,15 @@ body[data-theme="dark"] .semester-label {
   box-shadow: 0 0 0 3px rgba(56, 189, 248, .62), var(--shadow);
 }
 
+.subject-card.required-for-unlock {
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .6), var(--shadow);
+}
+
+.subject-card.unlock-target {
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, .45), var(--shadow);
+}
+
 .subject-name {
   font-size: .88rem;
   font-weight: 600;
@@ -804,6 +813,47 @@ body[data-theme="dark"] .semester-label {
   stroke-width: 3.05 !important;
   stroke-opacity: .98 !important;
   stroke-dasharray: none !important;
+}
+
+/* ── PNG Export ───────────────────────────────────────────── */
+.png-export-sandbox {
+  position: fixed;
+  top: 0;
+  left: -100000px;
+  pointer-events: none;
+  opacity: 0;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.png-export-sandbox .png-export-target {
+  position: relative;
+  background: #ffffff;
+}
+
+.png-export-sandbox #arrows-svg {
+  z-index: 1;
+}
+
+.png-export-sandbox #semesters {
+  z-index: 2;
+}
+
+.png-export-sandbox .semester-block {
+  background: #ffffff;
+  border-color: #d1d5db;
+  box-shadow: none;
+}
+
+.png-export-sandbox .subject-card {
+  box-shadow: none;
+  opacity: 1;
+}
+
+.png-export-sandbox .arrow-line {
+  stroke-opacity: .52;
+  stroke-width: 1.9;
+  stroke-dasharray: none;
 }
 
 /* ── Toast ────────────────────────────────────────────────── */
