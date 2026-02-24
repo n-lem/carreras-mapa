@@ -1120,6 +1120,47 @@ function exportProgress() {
   URL.revokeObjectURL(url);
 }
 
+function exportAsPng() {
+  setToolsMenuOpen(false);
+  const diagram = document.getElementById("diagram-container");
+  if (!diagram || typeof html2canvas !== "function") {
+    showToast("No se pudo exportar a PNG. La librería no está disponible.");
+    return;
+  }
+
+  showToast("Generando imagen... por favor esperá.");
+
+  const style = getComputedStyle(document.body);
+  const bgColor = style.getPropertyValue('--bg').trim() || "#f8fafc";
+
+  html2canvas(diagram, {
+    logging: false,
+    useCORS: true,
+    backgroundColor: bgColor,
+    onclone: (doc) => {
+      // Forzar el repintado de las flechas en el clon
+      const arrowSvg = doc.getElementById('arrows-svg');
+      if (arrowSvg) {
+        arrowSvg.style.display = 'block';
+      }
+    }
+  }).then(canvas => {
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `mapa-de-carrera-${ACTIVE_PLAN?.slug || "demo"}-${date}.png`;
+    const url = canvas.toDataURL("image/png");
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }).catch(err => {
+    console.error("Error al generar PNG:", err);
+    showToast("Hubo un error al generar la imagen.");
+  });
+}
+
 async function importProgressFromFile(file) {
   setToolsMenuOpen(false);
   if (!file) return;
@@ -1487,6 +1528,9 @@ function bindUiEvents() {
 
   const exportButton = document.getElementById("btn-export");
   if (exportButton) exportButton.addEventListener("click", exportProgress);
+
+  const exportPngButton = document.getElementById("btn-export-png");
+  if (exportPngButton) exportPngButton.addEventListener("click", exportAsPng);
 
   const importButton = document.getElementById("btn-import");
   const printButton = document.getElementById("btn-print");
