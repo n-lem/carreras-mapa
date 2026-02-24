@@ -41,12 +41,17 @@
     </div>
   </div>
   <section id="career-hero" class="career-hero" aria-live="polite"></section>
+  <section id="view-mode-toggle" class="view-mode-toggle" aria-label="Modo de visualización" hidden>
+    <button id="btn-view-diagram" type="button" aria-pressed="true">Diagrama</button>
+    <button id="btn-view-list" type="button" aria-pressed="false">Lista móvil</button>
+  </section>
   <section id="career-progress-floating" class="career-progress-floating" aria-live="polite"></section>
 
   <main>
     <div id="diagram-container">
       <svg id="arrows-svg" aria-hidden="true"></svg>
       <div id="semesters"></div>
+      <div id="semesters-accordion" hidden></div>
     </div>
   </main>
 
@@ -70,14 +75,19 @@
     <select id="career-select-floating" aria-label="Seleccionar carrera (flotante)"></select>
   </section>
   <section id="onboarding-guide" class="onboarding-guide" aria-live="polite" hidden>
-    <div class="onboarding-title">Cómo usar el mapa</div>
-    <p>1 clic: <strong>Regular</strong>. 2 clics: <strong>Aprobada</strong>. 3 clics: <strong>Pendiente</strong>.</p>
-    <p>Podés tocar el título de cada cuatrimestre para aplicar el ciclo rápido a todas sus materias.</p>
+    <div class="onboarding-step-head">
+      <span id="onboarding-step-counter" class="onboarding-step-counter"></span>
+      <button id="btn-onboarding-close" type="button" aria-label="Cerrar guía">✕</button>
+    </div>
+    <div id="onboarding-title" class="onboarding-title"></div>
+    <p id="onboarding-body" class="onboarding-body"></p>
     <div class="onboarding-actions">
-      <button id="btn-onboarding-ok" type="button">Entendido</button>
+      <button id="btn-onboarding-prev" type="button">Anterior</button>
+      <button id="btn-onboarding-next" type="button">Siguiente</button>
       <button id="btn-onboarding-never" type="button">No recordar de nuevo</button>
     </div>
   </section>
+  <div id="onboarding-focus" class="onboarding-focus" aria-hidden="true" hidden></div>
   <input id="input-import-progress" type="file" accept="application/json,.json" hidden />
   <footer class="site-footer">
     <span>Autor:</span>

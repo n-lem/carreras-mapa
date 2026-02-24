@@ -15,6 +15,7 @@ const MILESTONES_HIDDEN_PREFIX = "unpaz_milestones_hidden:";
 const THEME_KEY = "unpaz_theme";
 const PROGRESS_SCHEMA_VERSION = 2;
 const ONBOARDING_DISMISSED_KEY = "unpaz_onboarding_dismissed";
+const VIEW_MODE_KEY = "unpaz_view_mode";
 const MAX_IMPORT_FILE_BYTES = 1024 * 1024; // 1 MB
 const MAX_IMPORT_TEXT_CHARS = 2 * 1024 * 1024; // 2 MB (UTF-16 chars)
 const STATE_LABELS = ["Pendiente", "Regular", "Aprobada"];
@@ -45,6 +46,9 @@ let toolsMenuOpen = false;
 let suppressAchievementNotifications = true;
 let activePathTargetId = null;
 let activeRequirementHighlight = null;
+let currentViewMode = "diagram";
+let onboardingTourState = { active: false, stepIndex: 0, steps: [] };
+let onboardingFocusedElement = null;
 
 /** @type {Record<string, 0|1|2>} */
 let progress = {};
@@ -247,6 +251,44 @@ function setToolsMenuOpen(open) {
   }
 }
 
+function resolveSavedViewMode() {
+  return safeStorageGet(VIEW_MODE_KEY) === "list" ? "list" : "diagram";
+}
+
+function updateViewModeControls() {
+  const toggle = document.getElementById("view-mode-toggle");
+  const diagramButton = document.getElementById("btn-view-diagram");
+  const listButton = document.getElementById("btn-view-list");
+  if (!toggle || !diagramButton || !listButton) return;
+
+  toggle.hidden = false;
+  const isDiagram = currentViewMode === "diagram";
+  diagramButton.classList.toggle("active", isDiagram);
+  listButton.classList.toggle("active", !isDiagram);
+  diagramButton.setAttribute("aria-pressed", String(isDiagram));
+  listButton.setAttribute("aria-pressed", String(!isDiagram));
+}
+
+function setViewMode(mode, options = {}) {
+  const persist = options.persist !== false;
+  const showMessage = options.showMessage === true;
+  const nextMode = mode === "list" ? "list" : "diagram";
+  if (nextMode === currentViewMode) {
+    updateViewModeControls();
+    return;
+  }
+
+  currentViewMode = nextMode;
+  if (persist) safeStorageSet(VIEW_MODE_KEY, currentViewMode);
+  updateViewModeControls();
+  renderPlanView();
+  if (onboardingTourState.active) renderOnboardingStep();
+
+  if (showMessage) {
+    showToast(currentViewMode === "list" ? "Vista lista móvil activada." : "Vista diagrama activada.");
+  }
+}
+
 function isOnboardingDismissed() {
   return safeStorageGet(ONBOARDING_DISMISSED_KEY) === "1";
 }
@@ -255,15 +297,145 @@ function setOnboardingDismissed(value) {
   safeStorageSet(ONBOARDING_DISMISSED_KEY, value ? "1" : "0");
 }
 
-function showOnboardingGuide() {
+function buildOnboardingSteps() {
+  return [
+    {
+      title: "Bienvenido al mapa",
+      body: "Este es un seguimiento no oficial de correlatividades de UNPAZ. Tus cambios se guardan en tu navegador.",
+      getTarget: null
+    },
+    {
+      title: "Cambiar estado de materia",
+      body: "Tocá una materia para ciclar: Pendiente -> Regular -> Aprobada -> Pendiente.",
+      getTarget: () => document.querySelector(".subject-card")
+    },
+    {
+      title: "Ciclo rápido por cuatrimestre",
+      body: "Tocá el título del cuatrimestre para avanzar todas las materias de ese bloque.",
+      getTarget: () => document.querySelector(".semester-label, .semester-accordion-summary")
+    },
+    {
+      title: "Herramientas",
+      body: "Desde el engranaje podés exportar/importar progreso, imprimir y guardar PNG.",
+      getTarget: () => document.getElementById("btn-tools")
+    },
+    {
+      title: "Vista móvil alternativa",
+      body: "Podés alternar entre Diagrama y Lista móvil para navegar mejor en pantallas pequeñas.",
+      getTarget: () => document.getElementById("view-mode-toggle")
+    }
+  ];
+}
+
+function clearOnboardingFocus() {
+  const focus = document.getElementById("onboarding-focus");
+  if (focus) focus.hidden = true;
+  if (onboardingFocusedElement) {
+    onboardingFocusedElement.classList.remove("onboarding-target");
+    onboardingFocusedElement = null;
+  }
+}
+
+function placeOnboardingGuide(target) {
   const guide = document.getElementById("onboarding-guide");
   if (!guide) return;
+
+  guide.style.top = "";
+  guide.style.left = "";
+  guide.style.bottom = "";
+  guide.style.transform = "";
+
+  if (!target) {
+    guide.style.left = "50%";
+    guide.style.bottom = "1rem";
+    guide.style.transform = "translateX(-50%)";
+    return;
+  }
+
+  const rect = target.getBoundingClientRect();
+  const guideRect = guide.getBoundingClientRect();
+  const margin = 12;
+
+  let top = rect.bottom + margin;
+  if (top + guideRect.height > window.innerHeight - margin) {
+    top = rect.top - guideRect.height - margin;
+  }
+  top = Math.max(margin, top);
+
+  let left = rect.left;
+  if (left + guideRect.width > window.innerWidth - margin) {
+    left = window.innerWidth - guideRect.width - margin;
+  }
+  left = Math.max(margin, left);
+
+  guide.style.top = `${Math.round(top)}px`;
+  guide.style.left = `${Math.round(left)}px`;
+}
+
+function paintOnboardingFocus(target) {
+  clearOnboardingFocus();
+  if (!target) return;
+
+  onboardingFocusedElement = target;
+  onboardingFocusedElement.classList.add("onboarding-target");
+
+  const focus = document.getElementById("onboarding-focus");
+  if (!focus) return;
+
+  const rect = target.getBoundingClientRect();
+  const pad = 6;
+  focus.style.top = `${Math.max(6, rect.top - pad)}px`;
+  focus.style.left = `${Math.max(6, rect.left - pad)}px`;
+  focus.style.width = `${Math.max(10, rect.width + pad * 2)}px`;
+  focus.style.height = `${Math.max(10, rect.height + pad * 2)}px`;
+  focus.hidden = false;
+}
+
+function renderOnboardingStep() {
+  if (!onboardingTourState.active) return;
+
+  const guide = document.getElementById("onboarding-guide");
+  const title = document.getElementById("onboarding-title");
+  const body = document.getElementById("onboarding-body");
+  const counter = document.getElementById("onboarding-step-counter");
+  const prevButton = document.getElementById("btn-onboarding-prev");
+  const nextButton = document.getElementById("btn-onboarding-next");
+  if (!guide || !title || !body || !counter || !prevButton || !nextButton) return;
+
+  const { stepIndex, steps } = onboardingTourState;
+  const step = steps[stepIndex];
+  if (!step) return;
+
+  title.textContent = step.title;
+  body.textContent = step.body;
+  counter.textContent = `Paso ${stepIndex + 1} de ${steps.length}`;
+  prevButton.disabled = stepIndex === 0;
+  nextButton.textContent = stepIndex >= steps.length - 1 ? "Finalizar" : "Siguiente";
   guide.hidden = false;
+
+  const target = typeof step.getTarget === "function" ? step.getTarget() : null;
+  paintOnboardingFocus(target);
+  placeOnboardingGuide(target);
+}
+
+function startOnboardingTour() {
+  onboardingTourState = {
+    active: true,
+    stepIndex: 0,
+    steps: buildOnboardingSteps()
+  };
+  renderOnboardingStep();
+}
+
+function showOnboardingGuide() {
+  startOnboardingTour();
 }
 
 function hideOnboardingGuide(rememberDismiss = false) {
   const guide = document.getElementById("onboarding-guide");
   if (guide) guide.hidden = true;
+  onboardingTourState.active = false;
+  clearOnboardingFocus();
   if (rememberDismiss) setOnboardingDismissed(true);
 }
 
@@ -643,6 +815,10 @@ function setRequirementHighlights(targetId, missingIds) {
 function drawArrows() {
   const svg = document.getElementById("arrows-svg");
   if (!svg) return;
+  if (currentViewMode !== "diagram") {
+    [...svg.querySelectorAll("path.arrow-line")].forEach((line) => line.remove());
+    return;
+  }
 
   [...svg.querySelectorAll("path.arrow-line")].forEach((line) => line.remove());
 
@@ -766,6 +942,81 @@ function renderSemesters() {
     });
 }
 
+function renderSemestersAccordion() {
+  const container = document.getElementById("semesters-accordion");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  const grouped = MATERIAS.reduce((acc, materia) => {
+    if (!acc[materia.cuatrimestre]) acc[materia.cuatrimestre] = [];
+    acc[materia.cuatrimestre].push(materia);
+    return acc;
+  }, {});
+
+  Object.keys(grouped)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .forEach((cuatrimestre) => {
+      const details = document.createElement("details");
+      details.className = "semester-accordion";
+      details.open = cuatrimestre <= 2;
+
+      const summary = document.createElement("summary");
+      summary.className = "semester-accordion-summary";
+      summary.textContent = `${cuatrimestre}° Cuatrimestre`;
+      details.appendChild(summary);
+
+      const actions = document.createElement("div");
+      actions.className = "semester-accordion-actions";
+
+      const quickCycleButton = document.createElement("button");
+      quickCycleButton.type = "button";
+      quickCycleButton.className = "semester-accordion-cycle";
+      quickCycleButton.textContent = "Ciclo rápido";
+      quickCycleButton.setAttribute(
+        "aria-label",
+        `Aplicar ciclo rápido al ${cuatrimestre}° cuatrimestre`
+      );
+      quickCycleButton.addEventListener("click", () => applySemesterCycleQuick(cuatrimestre));
+      actions.appendChild(quickCycleButton);
+      details.appendChild(actions);
+
+      const list = document.createElement("div");
+      list.className = "subjects-accordion-list";
+      grouped[cuatrimestre].forEach((materia) => list.appendChild(buildCard(materia)));
+      details.appendChild(list);
+
+      container.appendChild(details);
+    });
+}
+
+function renderPlanView() {
+  const diagramContainer = document.getElementById("semesters");
+  const accordionContainer = document.getElementById("semesters-accordion");
+  const svg = document.getElementById("arrows-svg");
+  if (!diagramContainer || !accordionContainer || !svg) return;
+
+  clearPathHighlights();
+
+  if (currentViewMode === "list") {
+    diagramContainer.innerHTML = "";
+    accordionContainer.hidden = false;
+    renderSemestersAccordion();
+    svg.style.display = "none";
+    drawArrows();
+    paintRequirementHighlights();
+    return;
+  }
+
+  accordionContainer.hidden = true;
+  accordionContainer.innerHTML = "";
+  svg.style.display = "";
+  renderSemesters();
+  drawArrows();
+  paintRequirementHighlights();
+}
+
 function highlightBlockedCards(ids) {
   if (!Array.isArray(ids) || ids.length === 0) return;
 
@@ -810,8 +1061,7 @@ function applySemesterCycleQuick(cuatrimestre) {
   progress = { ...progress, ...result.progress };
   normalizeProgressState();
   saveProgress();
-  renderSemesters();
-  drawArrows();
+  renderPlanView();
   updateCareerProgress();
   updateMilestones();
 
@@ -1057,6 +1307,10 @@ function updateCareerProgress() {
   if (toolsMenuOpen) {
     setToolsMenuOpen(true);
   }
+
+  if (onboardingTourState.active) {
+    renderOnboardingStep();
+  }
 }
 
 function updateMilestones(options = {}) {
@@ -1189,8 +1443,7 @@ function resetProgress() {
   clearAchievementNotifications();
   clearRequirementHighlights();
   saveProgress();
-  renderSemesters();
-  drawArrows();
+  renderPlanView();
   updateCareerProgress();
   updateMilestones();
 }
@@ -1383,8 +1636,7 @@ async function importProgressFromFile(file) {
   progress = nextProgress;
   normalizeProgressState();
   saveProgress();
-  renderSemesters();
-  drawArrows();
+  renderPlanView();
   updateCareerProgress();
   updateMilestones();
   showToast(`Progreso importado: ${Object.keys(nextProgress).length} materias cargadas.`);
@@ -1393,6 +1645,10 @@ async function importProgressFromFile(file) {
 function printInLightMode() {
   setToolsMenuOpen(false);
   const previousTheme = document.body.dataset.theme === "dark" ? "dark" : "light";
+  const previousViewMode = currentViewMode;
+  if (currentViewMode !== "diagram") {
+    setViewMode("diagram", { persist: false, showMessage: false });
+  }
   setTheme("light");
 
   // Crear el encabezado de impresión dinámicamente
@@ -1417,6 +1673,11 @@ function printInLightMode() {
   }
 
   const restore = () => {
+    if (currentViewMode !== previousViewMode) {
+      currentViewMode = previousViewMode;
+      updateViewModeControls();
+      renderPlanView();
+    }
     setTheme(previousTheme);
     if (printHeader) {
       printHeader.remove();
@@ -1604,8 +1865,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     setCareerSelectionValue(plan.slug);
     setCareerFabOpen(false);
 
-    renderSemesters();
-    drawArrows();
+    renderPlanView();
     updateCareerProgress();
     updateMilestones({ notify: false });
 
@@ -1650,8 +1910,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     setCareerSelectionValue("demo");
     setCareerFabOpen(false);
 
-    renderSemesters();
-    drawArrows();
+    renderPlanView();
     updateCareerProgress();
     updateMilestones({ notify: false });
     return false;
@@ -1666,6 +1925,7 @@ function bindUiEvents() {
       drawArrows();
       if (window.innerWidth > 768) setCareerFabOpen(false);
       if (toolsMenuOpen) setToolsMenuOpen(true);
+      if (onboardingTourState.active) renderOnboardingStep();
     }, 80);
   });
 
@@ -1706,6 +1966,20 @@ function bindUiEvents() {
     showMilestonesButton.addEventListener("click", () => {
       setMilestonesHidden(false);
       updateMilestones();
+    });
+  }
+
+  const viewDiagramButton = document.getElementById("btn-view-diagram");
+  if (viewDiagramButton) {
+    viewDiagramButton.addEventListener("click", () => {
+      setViewMode("diagram", { persist: true, showMessage: true });
+    });
+  }
+
+  const viewListButton = document.getElementById("btn-view-list");
+  if (viewListButton) {
+    viewListButton.addEventListener("click", () => {
+      setViewMode("list", { persist: true, showMessage: true });
     });
   }
 
@@ -1767,6 +2041,7 @@ function bindUiEvents() {
     clearRequirementHighlights();
     setToolsMenuOpen(false);
     setCareerFabOpen(false);
+    if (onboardingTourState.active) hideOnboardingGuide(false);
   });
 
   const floatingSelect = document.getElementById("career-select-floating");
@@ -1776,15 +2051,41 @@ function bindUiEvents() {
     });
   }
 
-  const onboardingOkButton = document.getElementById("btn-onboarding-ok");
-  if (onboardingOkButton) {
-    onboardingOkButton.addEventListener("click", () => hideOnboardingGuide(false));
+  const onboardingPrevButton = document.getElementById("btn-onboarding-prev");
+  if (onboardingPrevButton) {
+    onboardingPrevButton.addEventListener("click", () => {
+      if (!onboardingTourState.active) return;
+      onboardingTourState.stepIndex = Math.max(0, onboardingTourState.stepIndex - 1);
+      renderOnboardingStep();
+    });
+  }
+
+  const onboardingNextButton = document.getElementById("btn-onboarding-next");
+  if (onboardingNextButton) {
+    onboardingNextButton.addEventListener("click", () => {
+      if (!onboardingTourState.active) return;
+      if (onboardingTourState.stepIndex >= onboardingTourState.steps.length - 1) {
+        hideOnboardingGuide(false);
+        return;
+      }
+      onboardingTourState.stepIndex += 1;
+      renderOnboardingStep();
+    });
+  }
+
+  const onboardingCloseButton = document.getElementById("btn-onboarding-close");
+  if (onboardingCloseButton) {
+    onboardingCloseButton.addEventListener("click", () => hideOnboardingGuide(false));
   }
 
   const onboardingNeverButton = document.getElementById("btn-onboarding-never");
   if (onboardingNeverButton) {
     onboardingNeverButton.addEventListener("click", () => hideOnboardingGuide(true));
   }
+
+  window.addEventListener("scroll", () => {
+    if (onboardingTourState.active) renderOnboardingStep();
+  }, { passive: true });
 }
 
 async function init() {
@@ -1796,6 +2097,8 @@ async function init() {
   setTheme(resolvePreferredTheme());
   configureAuthorFooter();
   setToolsMenuOpen(false);
+  currentViewMode = resolveSavedViewMode();
+  updateViewModeControls();
 
   const svg = document.getElementById("arrows-svg");
   if (svg) buildDefs(svg);
