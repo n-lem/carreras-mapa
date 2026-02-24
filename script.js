@@ -373,7 +373,7 @@ function placeOnboardingGuide(target) {
   guide.style.left = "";
   guide.style.right = "";
   guide.style.bottom = "";
-  guide.style.transform = "";
+  guide.style.transform = "none";
 
   if (!target) {
     guide.style.top = "50%";
@@ -1189,7 +1189,7 @@ function shouldHideUnavailablePrograms() {
   if (Object.prototype.hasOwnProperty.call(ACTIVE_PLAN_META || {}, "programasOcultarNoDisponibles")) {
     return Boolean(ACTIVE_PLAN_META.programasOcultarNoDisponibles);
   }
-  return true;
+  return false;
 }
 
 function renderProgramsView() {
@@ -1326,18 +1326,34 @@ function renderLinksView() {
   container.className = "aux-view";
 
   const links = normalizeInterestLinks();
-  if (links.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "aux-empty";
-    empty.textContent = "No hay enlaces cargados para esta carrera.";
-    container.appendChild(empty);
-    return;
-  }
+  const fallbackLinks = [
+    {
+      titulo: "Sitio institucional UNPAZ",
+      url: "https://www.unpaz.edu.ar/",
+      descripcion: "Portal principal de la universidad."
+    },
+    {
+      titulo: "Calendario académico",
+      url: "https://www.unpaz.edu.ar/calendario-academico",
+      descripcion: "Fechas de cursada, exámenes y recesos."
+    },
+    {
+      titulo: "Campus virtual",
+      url: "https://campus.unpaz.edu.ar/",
+      descripcion: "Acceso a aulas y material de cursada."
+    },
+    {
+      titulo: "Biblioteca UNPAZ",
+      url: "https://www.unpaz.edu.ar/biblioteca",
+      descripcion: "Catálogo y recursos de biblioteca."
+    }
+  ];
+  const effectiveLinks = links.length > 0 ? links : fallbackLinks;
 
   const list = document.createElement("div");
   list.className = "links-list";
 
-  links.forEach((item) => {
+  effectiveLinks.forEach((item) => {
     const card = document.createElement("article");
     card.className = "link-card";
 
