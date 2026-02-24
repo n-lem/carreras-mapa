@@ -274,6 +274,7 @@ body[data-theme="dark"] .career-picker select {
   margin: .5rem auto 0;
   padding: 0 1rem;
   display: flex;
+  flex-wrap: wrap;
   gap: .32rem;
 }
 
@@ -674,6 +675,19 @@ main { padding: 1.15rem 1rem 2.8rem; }
   display: none !important;
 }
 
+#programs-view,
+#links-view {
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+  padding: .4rem .2rem;
+}
+
+#programs-view[hidden],
+#links-view[hidden] {
+  display: none !important;
+}
+
 .semester-block {
   display: flex;
   flex-direction: column;
@@ -803,6 +817,117 @@ body[data-theme="dark"] .semester-label {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: .7rem;
   padding: 0 .7rem .75rem;
+}
+
+.aux-view {
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+}
+
+.aux-block {
+  border: 1px solid rgba(148, 163, 184, .26);
+  border-radius: calc(var(--radius) + 2px);
+  background: rgba(148, 163, 184, .05);
+  box-shadow: var(--shadow);
+  padding: .75rem .85rem;
+}
+
+.aux-block-title {
+  font-size: .84rem;
+  font-weight: 800;
+  color: var(--semester-label);
+  margin-bottom: .5rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.aux-empty {
+  border: 1px dashed var(--milestone-border);
+  border-radius: var(--radius);
+  padding: .8rem;
+  color: var(--semester-label);
+  font-size: .82rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.programs-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+
+.program-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .55rem;
+  border: 1px solid var(--milestone-border);
+  border-radius: var(--radius);
+  background: var(--milestone-bg);
+  color: var(--milestone-text);
+  padding: .45rem .55rem;
+}
+
+.program-item-name {
+  font-size: .79rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.program-item-link {
+  border: 1px solid var(--milestone-border);
+  border-radius: 999px;
+  padding: .2rem .55rem;
+  font-size: .72rem;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+}
+
+.program-item-link:hover {
+  filter: brightness(.96);
+}
+
+.program-item-missing {
+  font-size: .71rem;
+  font-weight: 700;
+  color: var(--semester-label);
+}
+
+.links-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: .7rem;
+}
+
+.link-card {
+  border: 1px solid var(--milestone-border);
+  border-radius: var(--radius);
+  background: var(--milestone-bg);
+  color: var(--milestone-text);
+  box-shadow: var(--shadow);
+  padding: .7rem .75rem;
+}
+
+.link-card-title {
+  font-size: .85rem;
+  font-weight: 800;
+  color: inherit;
+  text-decoration: none;
+}
+
+.link-card-title:hover {
+  text-decoration: underline;
+}
+
+.link-card-description {
+  margin-top: .35rem;
+  font-size: .78rem;
+  line-height: 1.35;
+  color: var(--semester-label);
 }
 
 /* ── Subject card ─────────────────────────────────────────── */
@@ -1082,13 +1207,27 @@ body[data-theme="dark"] .semester-label {
   border: 2px solid #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, .25);
   pointer-events: none;
-  z-index: 9795;
+  z-index: 9797;
   transition: top .2s ease, left .2s ease, width .2s ease, height .2s ease;
 }
 
 .onboarding-target {
   position: relative;
   z-index: 9796 !important;
+}
+
+.onboarding-focus-clone {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9796;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.onboarding-focus-clone > * {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
 }
 
 .onboarding-backdrop {
@@ -1247,6 +1386,15 @@ body.onboarding-open {
     grid-template-columns: 1fr;
   }
 
+  .program-item {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .links-list {
+    grid-template-columns: 1fr;
+  }
+
   .subject-card {
     width: 100%;
     max-width: none;
@@ -1349,6 +1497,7 @@ body.onboarding-open {
   .achievement-stack,
   .onboarding-guide,
   .onboarding-backdrop,
+  .onboarding-focus-clone,
   .onboarding-focus,
   .view-mode-toggle,
   #toast,

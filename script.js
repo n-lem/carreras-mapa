@@ -252,27 +252,36 @@ function setToolsMenuOpen(open) {
 }
 
 function resolveSavedViewMode() {
-  return safeStorageGet(VIEW_MODE_KEY) === "list" ? "list" : "diagram";
+  const mode = safeStorageGet(VIEW_MODE_KEY);
+  return ["diagram", "list", "programs", "links"].includes(mode) ? mode : "diagram";
 }
 
 function updateViewModeControls() {
   const toggle = document.getElementById("view-mode-toggle");
   const diagramButton = document.getElementById("btn-view-diagram");
   const listButton = document.getElementById("btn-view-list");
-  if (!toggle || !diagramButton || !listButton) return;
+  const programsButton = document.getElementById("btn-view-programs");
+  const linksButton = document.getElementById("btn-view-links");
+  if (!toggle || !diagramButton || !listButton || !programsButton || !linksButton) return;
 
   toggle.hidden = false;
-  const isDiagram = currentViewMode === "diagram";
-  diagramButton.classList.toggle("active", isDiagram);
-  listButton.classList.toggle("active", !isDiagram);
-  diagramButton.setAttribute("aria-pressed", String(isDiagram));
-  listButton.setAttribute("aria-pressed", String(!isDiagram));
+  const states = [
+    { button: diagramButton, active: currentViewMode === "diagram" },
+    { button: listButton, active: currentViewMode === "list" },
+    { button: programsButton, active: currentViewMode === "programs" },
+    { button: linksButton, active: currentViewMode === "links" }
+  ];
+
+  states.forEach(({ button, active }) => {
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
 }
 
 function setViewMode(mode, options = {}) {
   const persist = options.persist !== false;
   const showMessage = options.showMessage === true;
-  const nextMode = mode === "list" ? "list" : "diagram";
+  const nextMode = ["diagram", "list", "programs", "links"].includes(mode) ? mode : "diagram";
   if (nextMode === currentViewMode) {
     updateViewModeControls();
     return;
@@ -285,7 +294,13 @@ function setViewMode(mode, options = {}) {
   if (onboardingTourState.active) renderOnboardingStep();
 
   if (showMessage) {
-    showToast(currentViewMode === "list" ? "Vista lista activada." : "Vista diagrama activada.");
+    const modeLabel = {
+      diagram: "Vista diagrama activada.",
+      list: "Vista lista activada.",
+      programs: "Vista programas activada.",
+      links: "Vista enlaces activada."
+    };
+    showToast(modeLabel[currentViewMode] || "Vista activada.");
   }
 }
 
@@ -337,21 +352,69 @@ function setOnboardingBackdropVisible(visible) {
 function clearOnboardingFocus() {
   const focus = document.getElementById("onboarding-focus");
   if (focus) focus.hidden = true;
+  const clone = document.getElementById("onboarding-focus-clone");
+  if (clone) {
+    clone.hidden = true;
+    clone.innerHTML = "";
+  }
   if (onboardingFocusedElement) {
     onboardingFocusedElement.classList.remove("onboarding-target");
     onboardingFocusedElement = null;
   }
 }
 
-function placeOnboardingGuide() {
+function placeOnboardingGuide(target) {
   const guide = document.getElementById("onboarding-guide");
   if (!guide) return;
 
-  guide.style.top = "50%";
-  guide.style.left = "50%";
-  guide.style.right = "auto";
-  guide.style.bottom = "auto";
-  guide.style.transform = "translate(-50%, -50%)";
+  const margin = 12;
+  guide.style.top = "";
+  guide.style.left = "";
+  guide.style.right = "";
+  guide.style.bottom = "";
+  guide.style.transform = "";
+
+  if (!target) {
+    guide.style.top = "50%";
+    guide.style.left = "50%";
+    guide.style.transform = "translate(-50%, -50%)";
+    return;
+  }
+
+  const rect = target.getBoundingClientRect();
+  const guideRect = guide.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  let top = rect.bottom + margin;
+  if (top + guideRect.height > viewportHeight - margin) {
+    const altTop = rect.top - guideRect.height - margin;
+    top = altTop >= margin ? altTop : Math.max(margin, viewportHeight - guideRect.height - margin);
+  }
+
+  let left = rect.left + (rect.width / 2) - (guideRect.width / 2);
+  left = Math.max(margin, Math.min(left, viewportWidth - guideRect.width - margin));
+
+  const overlapsHorizontally = left < rect.right && left + guideRect.width > rect.left;
+  const overlapsVertically = top < rect.bottom && top + guideRect.height > rect.top;
+  if (overlapsHorizontally && overlapsVertically) {
+    const rightLeft = rect.right + margin;
+    const leftLeft = rect.left - guideRect.width - margin;
+    if (rightLeft + guideRect.width <= viewportWidth - margin) {
+      left = rightLeft;
+    } else if (leftLeft >= margin) {
+      left = leftLeft;
+    }
+  }
+
+  guide.style.top = `${Math.round(top)}px`;
+  guide.style.left = `${Math.round(left)}px`;
+}
+
+function stripCloneIds(node) {
+  if (!(node instanceof Element)) return;
+  if (node.id) node.removeAttribute("id");
+  node.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
 }
 
 function paintOnboardingFocus(target) {
@@ -371,6 +434,19 @@ function paintOnboardingFocus(target) {
   focus.style.width = `${Math.max(10, rect.width + pad * 2)}px`;
   focus.style.height = `${Math.max(10, rect.height + pad * 2)}px`;
   focus.hidden = false;
+
+  const cloneHost = document.getElementById("onboarding-focus-clone");
+  if (!cloneHost) return;
+
+  const clone = target.cloneNode(true);
+  stripCloneIds(clone);
+  cloneHost.innerHTML = "";
+  cloneHost.appendChild(clone);
+  cloneHost.style.top = `${Math.round(rect.top)}px`;
+  cloneHost.style.left = `${Math.round(rect.left)}px`;
+  cloneHost.style.width = `${Math.round(rect.width)}px`;
+  cloneHost.style.height = `${Math.round(rect.height)}px`;
+  cloneHost.hidden = false;
 }
 
 function renderOnboardingStep() {
@@ -398,7 +474,7 @@ function renderOnboardingStep() {
 
   const target = typeof step.getTarget === "function" ? step.getTarget() : null;
   paintOnboardingFocus(target);
-  placeOnboardingGuide();
+  placeOnboardingGuide(target);
 }
 
 function startOnboardingTour() {
@@ -631,10 +707,6 @@ function getMissingCorrelativaGraph(id, targetState) {
     missingIds: [...missingIds],
     edgeKeys: [...edgeKeys]
   };
-}
-
-function getMissingCorrelativaIds(id, targetState) {
-  return getMissingCorrelativaGraph(id, targetState).missingIds;
 }
 
 function buildDefs(svg) {
@@ -998,13 +1070,204 @@ function renderSemestersAccordion() {
     });
 }
 
+function resolveProgramLinkEntry(materiaId) {
+  const source = ACTIVE_PLAN_META?.programas || ACTIVE_PLAN_META?.programas_por_materia || null;
+  const baseUrl = String(
+    ACTIVE_PLAN_META?.programasBaseUrl ||
+    ACTIVE_PLAN_META?.programas_base_url ||
+    ""
+  ).trim();
+
+  if (Array.isArray(source)) {
+    const match = source.find((item) => String(item?.id || item?.materiaId || "").trim() === materiaId);
+    if (match) {
+      const url = String(match.url || match.href || match.link || "").trim();
+      const label = String(match.label || match.titulo || match.nombre || "Abrir programa").trim();
+      if (url) return { url, label };
+    }
+  } else if (source && typeof source === "object") {
+    const value = source[materiaId];
+    if (typeof value === "string" && value.trim()) {
+      return { url: value.trim(), label: "Abrir programa" };
+    }
+    if (value && typeof value === "object") {
+      const url = String(value.url || value.href || value.link || "").trim();
+      const label = String(value.label || value.titulo || value.nombre || "Abrir programa").trim();
+      if (url) return { url, label };
+    }
+  }
+
+  if (baseUrl) {
+    const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+    return {
+      url: `${normalizedBase}${materiaId}.pdf`,
+      label: "Abrir programa"
+    };
+  }
+
+  return null;
+}
+
+function renderProgramsView() {
+  const container = document.getElementById("programs-view");
+  if (!container) return;
+
+  container.innerHTML = "";
+  container.className = "aux-view";
+
+  const grouped = MATERIAS.reduce((acc, materia) => {
+    if (!acc[materia.cuatrimestre]) acc[materia.cuatrimestre] = [];
+    acc[materia.cuatrimestre].push(materia);
+    return acc;
+  }, {});
+
+  const cuatrimestres = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+  if (cuatrimestres.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "aux-empty";
+    empty.textContent = "No hay materias cargadas para esta carrera.";
+    container.appendChild(empty);
+    return;
+  }
+
+  cuatrimestres.forEach((cuatrimestre) => {
+    const block = document.createElement("section");
+    block.className = "aux-block";
+
+    const title = document.createElement("h3");
+    title.className = "aux-block-title";
+    title.textContent = `${cuatrimestre}° Cuatrimestre`;
+    block.appendChild(title);
+
+    const list = document.createElement("ul");
+    list.className = "programs-list";
+
+    grouped[cuatrimestre].forEach((materia) => {
+      const item = document.createElement("li");
+      item.className = "program-item";
+
+      const name = document.createElement("span");
+      name.className = "program-item-name";
+      name.textContent = `${materia.id} - ${materia.nombre}`;
+      item.appendChild(name);
+
+      const linkEntry = resolveProgramLinkEntry(materia.id);
+      if (linkEntry?.url) {
+        const link = document.createElement("a");
+        link.className = "program-item-link";
+        link.href = linkEntry.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = linkEntry.label || "Abrir programa";
+        item.appendChild(link);
+      } else {
+        const missing = document.createElement("span");
+        missing.className = "program-item-missing";
+        missing.textContent = "Sin enlace";
+        item.appendChild(missing);
+      }
+
+      list.appendChild(item);
+    });
+
+    block.appendChild(list);
+    container.appendChild(block);
+  });
+}
+
+function normalizeInterestLinks() {
+  const source = ACTIVE_PLAN_META?.enlaces || ACTIVE_PLAN_META?.links || [];
+  if (!source) return [];
+
+  if (Array.isArray(source)) {
+    return source
+      .map((item) => {
+        const url = String(item?.url || item?.href || item?.link || "").trim();
+        const titulo = String(item?.titulo || item?.title || item?.nombre || url).trim();
+        const descripcion = String(item?.descripcion || item?.description || "").trim();
+        if (!url) return null;
+        return { url, titulo, descripcion };
+      })
+      .filter(Boolean);
+  }
+
+  if (source && typeof source === "object") {
+    return Object.entries(source)
+      .map(([titulo, value]) => {
+        if (typeof value === "string" && value.trim()) {
+          return { url: value.trim(), titulo: String(titulo).trim(), descripcion: "" };
+        }
+        if (value && typeof value === "object") {
+          const url = String(value.url || value.href || value.link || "").trim();
+          const label = String(value.titulo || value.title || value.nombre || titulo).trim();
+          const descripcion = String(value.descripcion || value.description || "").trim();
+          if (url) return { url, titulo: label, descripcion };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function renderLinksView() {
+  const container = document.getElementById("links-view");
+  if (!container) return;
+
+  container.innerHTML = "";
+  container.className = "aux-view";
+
+  const links = normalizeInterestLinks();
+  if (links.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "aux-empty";
+    empty.textContent = "No hay enlaces cargados para esta carrera.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "links-list";
+
+  links.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "link-card";
+
+    const title = document.createElement("a");
+    title.className = "link-card-title";
+    title.href = item.url;
+    title.target = "_blank";
+    title.rel = "noopener noreferrer";
+    title.textContent = item.titulo;
+    card.appendChild(title);
+
+    if (item.descripcion) {
+      const description = document.createElement("p");
+      description.className = "link-card-description";
+      description.textContent = item.descripcion;
+      card.appendChild(description);
+    }
+
+    list.appendChild(card);
+  });
+
+  container.appendChild(list);
+}
+
 function renderPlanView() {
   const diagramContainer = document.getElementById("semesters");
   const accordionContainer = document.getElementById("semesters-accordion");
+  const programsContainer = document.getElementById("programs-view");
+  const linksContainer = document.getElementById("links-view");
   const svg = document.getElementById("arrows-svg");
-  if (!diagramContainer || !accordionContainer || !svg) return;
+  if (!diagramContainer || !accordionContainer || !programsContainer || !linksContainer || !svg) return;
 
   clearPathHighlights();
+  programsContainer.hidden = true;
+  programsContainer.innerHTML = "";
+  linksContainer.hidden = true;
+  linksContainer.innerHTML = "";
 
   if (currentViewMode === "list") {
     diagramContainer.hidden = true;
@@ -1014,6 +1277,30 @@ function renderPlanView() {
     svg.style.display = "none";
     drawArrows();
     paintRequirementHighlights();
+    return;
+  }
+
+  if (currentViewMode === "programs") {
+    diagramContainer.hidden = true;
+    diagramContainer.innerHTML = "";
+    accordionContainer.hidden = true;
+    accordionContainer.innerHTML = "";
+    svg.style.display = "none";
+    programsContainer.hidden = false;
+    renderProgramsView();
+    drawArrows();
+    return;
+  }
+
+  if (currentViewMode === "links") {
+    diagramContainer.hidden = true;
+    diagramContainer.innerHTML = "";
+    accordionContainer.hidden = true;
+    accordionContainer.innerHTML = "";
+    svg.style.display = "none";
+    linksContainer.hidden = false;
+    renderLinksView();
+    drawArrows();
     return;
   }
 
@@ -1989,6 +2276,20 @@ function bindUiEvents() {
   if (viewListButton) {
     viewListButton.addEventListener("click", () => {
       setViewMode("list", { persist: true, showMessage: true });
+    });
+  }
+
+  const viewProgramsButton = document.getElementById("btn-view-programs");
+  if (viewProgramsButton) {
+    viewProgramsButton.addEventListener("click", () => {
+      setViewMode("programs", { persist: true, showMessage: true });
+    });
+  }
+
+  const viewLinksButton = document.getElementById("btn-view-links");
+  if (viewLinksButton) {
+    viewLinksButton.addEventListener("click", () => {
+      setViewMode("links", { persist: true, showMessage: true });
     });
   }
 

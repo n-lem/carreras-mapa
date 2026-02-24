@@ -44,6 +44,8 @@
   <section id="view-mode-toggle" class="view-mode-toggle" aria-label="Modo de visualización" hidden>
     <button id="btn-view-diagram" type="button" aria-pressed="true">Diagrama</button>
     <button id="btn-view-list" type="button" aria-pressed="false">Lista</button>
+    <button id="btn-view-programs" type="button" aria-pressed="false">Programas</button>
+    <button id="btn-view-links" type="button" aria-pressed="false">Enlaces</button>
   </section>
   <section id="career-progress-floating" class="career-progress-floating" aria-live="polite"></section>
 
@@ -52,6 +54,8 @@
       <svg id="arrows-svg" aria-hidden="true"></svg>
       <div id="semesters"></div>
       <div id="semesters-accordion" hidden></div>
+      <div id="programs-view" hidden></div>
+      <div id="links-view" hidden></div>
     </div>
   </main>
 
@@ -88,6 +92,7 @@
     </div>
   </section>
   <div id="onboarding-backdrop" class="onboarding-backdrop" aria-hidden="true" hidden></div>
+  <div id="onboarding-focus-clone" class="onboarding-focus-clone" aria-hidden="true" hidden></div>
   <div id="onboarding-focus" class="onboarding-focus" aria-hidden="true" hidden></div>
   <input id="input-import-progress" type="file" accept="application/json,.json" hidden />
   <footer class="site-footer">
