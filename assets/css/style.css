@@ -1209,15 +1209,20 @@ body[data-theme="dark"] .semester-label {
 .onboarding-actions button:hover { filter: brightness(.96); }
 
 #btn-onboarding-never {
-  background-color: var(--btn-danger-bg);
-  color: var(--fab-text);
-  border-color: var(--btn-danger-bg);
+  background-color: #8b5cf6; /* Violeta vibrante para resaltar */
+  color: #ffffff;
+  border-color: #8b5cf6;
 }
 
 #btn-onboarding-never:hover {
-  background-color: var(--btn-danger-bg-hover);
-  border-color: var(--btn-danger-bg-hover);
+  background-color: #7c3aed;
+  border-color: #7c3aed;
   filter: none;
+}
+
+body[data-theme="dark"] #btn-onboarding-never {
+  background-color: #6d28d9; /* Violeta un poco más oscuro para modo noche */
+  border-color: #6d28d9;
 }
 
 .onboarding-focus {
