@@ -1078,31 +1078,35 @@ body[data-theme="dark"] .semester-label {
 /* ── Print ────────────────────────────────────────────────── */
 @media print {
   * {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   :root,
   body,
   body[data-theme="dark"] {
     --bg: #ffffff;
-    --text: #111827;
-    --semester-label: #334155;
-    --milestone-bg: #ffffff;
-    --milestone-border: #94a3b8;
-    --milestone-text: #1f2937;
-    --color-pending-bg: #e5e7eb;
-    --color-pending-border: #9ca3af;
-    --color-pending-text: #374151;
-    --color-regular-bg: #fef3c7;
-    --color-regular-border: #d97706;
-    --color-regular-text: #78350f;
-    --color-approved-bg: #dcfce7;
+    --text: #020617;
+    --semester-label: #475569;
+    --color-pending-bg: #f1f5f9;
+    --color-pending-border: #94a3b8;
+    --color-pending-text: #334155;
+    --color-regular-bg: #fefce8;
+    --color-regular-border: #ca8a04;
+    --color-regular-text: #713f12;
+    --color-approved-bg: #f0fdf4;
     --color-approved-border: #16a34a;
     --color-approved-text: #14532d;
-    --shadow: none;
+    --shadow: none !important;
   }
 
+  body {
+    font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    background: var(--bg) !important;
+    color: var(--text) !important;
+  }
+
+  /* 1. Ocultar todos los elementos interactivos y flotantes */
   header,
   .milestone-floating,
   .milestone-show-btn,
@@ -1112,61 +1116,105 @@ body[data-theme="dark"] .semester-label {
   .achievement-stack,
   .onboarding-guide,
   #toast,
-  .site-footer {
+  .site-footer,
+  #arrows-svg /* Ocultar las flechas SVG */ {
     display: none !important;
   }
 
+  /* 2. Crear un diseño de informe vertical */
   main {
-    padding: .6rem 0;
+    padding: 0;
+    max-width: 100%;
   }
 
   #diagram-container {
-    overflow: visible;
+    max-width: 100%;
   }
 
-  #arrows-svg {
-    z-index: 1 !important;
+  .print-header {
+    display: block !important;
+    padding: 0 0 1rem 0;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 1.2rem;
+    text-align: center;
+  }
+
+  .print-header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+
+  .print-header p {
+    font-size: 1rem;
+    color: #475569;
+    margin-top: 0.15rem;
   }
 
   #semesters {
-    z-index: 2 !important;
-  }
-
-  .arrow-line,
-  .arrow-line.state-regular,
-  .arrow-line.state-approved,
-  .arrow-line.path-active,
-  .arrow-line.path-muted {
-    stroke: #475569 !important;
-    stroke-opacity: .65 !important;
-    stroke-width: 1.25 !important;
-    stroke-dasharray: none !important;
-    marker-end: none !important;
+    display: block; /* Romper el flexbox */
+    padding: 0;
   }
 
   .semester-block {
-    background: #ffffff !important;
-    border-color: #cbd5e1 !important;
-    z-index: 2 !important;
-  }
-
-  .subject-card {
-    background: #ffffff !important;
-    color: #111827 !important;
-    border-color: #64748b !important;
-    box-shadow: none !important;
-    z-index: 3 !important;
-  }
-
-  .subject-name,
-  .subject-status {
-    background: #ffffff !important;
-    display: inline;
-    padding: 0 .08rem;
-  }
-
-  .career-hero {
-    margin: 0 0 .4rem 0;
+    display: block; /* Romper el flexbox */
+    border: none;
+    background: none;
+    box-shadow: none;
+    margin-bottom: 1.5rem;
     padding: 0;
+    page-break-inside: avoid; /* Intentar no cortar un cuatrimestre */
+  }
+
+  .semester-label {
+    font-size: .8rem !important;
+    padding: .25rem 0 !important;
+    border: none;
+    border-bottom: 1.5px solid #94a3b8;
+    border-radius: 0;
+    background: none;
+    text-align: left;
+    margin-bottom: .8rem;
+    color: var(--semester-label) !important;
+  }
+
+  .subjects-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.8rem;
+  }
+
+  /* 3. Estilizar las tarjetas para el informe */
+  .subject-card {
+    border-width: 1.5px;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .subject-card.locked {
+    opacity: 1; /* Mostrar materias bloqueadas claramente */
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #64748b !important;
+  }
+
+  .lock-icon {
+    display: inline-block;
+    font-size: .8rem;
+    position: static;
+    opacity: 1;
+    margin-right: .2rem;
+  }
+
+  .subject-name {
+    font-size: .85rem;
+  }
+
+  .subject-status {
+    font-size: .7rem;
+  }
+
+  /* Forzar saltos de página adecuados */
+  .semester-block:not(:first-child) {
+    page-break-before: always;
   }
 }

@@ -1205,12 +1205,36 @@ function printInLightMode() {
   const previousTheme = document.body.dataset.theme === "dark" ? "dark" : "light";
   setTheme("light");
 
-  const restoreTheme = () => {
+  // Crear el encabezado de impresión dinámicamente
+  const mainContainer = document.querySelector("main");
+  const printHeader = document.createElement("div");
+  printHeader.className = "print-header";
+  printHeader.style.display = "none"; // Oculto por defecto, visible solo en print
+
+  const { approved, total, percentage } = careerProgressInfo();
+  const careerName = ACTIVE_PLAN_META?.carrera || ACTIVE_PLAN?.carrera || "Carrera";
+
+  const title = document.createElement("h1");
+  title.textContent = careerName;
+  printHeader.appendChild(title);
+
+  const summary = document.createElement("p");
+  summary.textContent = `Progreso: ${approved} de ${total} materias aprobadas (${percentage}%)`;
+  printHeader.appendChild(summary);
+
+  if (mainContainer) {
+    mainContainer.prepend(printHeader);
+  }
+
+  const restore = () => {
     setTheme(previousTheme);
-    window.removeEventListener("afterprint", restoreTheme);
+    if (printHeader) {
+      printHeader.remove();
+    }
+    window.removeEventListener("afterprint", restore);
   };
 
-  window.addEventListener("afterprint", restoreTheme);
+  window.addEventListener("afterprint", restore);
   window.print();
 }
 
