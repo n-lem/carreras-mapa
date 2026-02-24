@@ -1,5 +1,5 @@
-# carreras-unpaz
-Mapa de correlatividades para carreras UNPAZ.
+# carreras-
+Mapa de correlatividades para carreras LGTI.
 
 ## Características principales
 
