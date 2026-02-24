@@ -28,6 +28,16 @@ El `catalog.json` del repositorio está preparado con 3 carreras de ejemplo:
 - Ingeniería en Informática
 - Licenciatura en Producción y Desarrollo de Videojuegos
 
+Nota para despliegue (GitHub Pages/Vercel/Netlify):
+- Estos 7 archivos deben estar versionados en Git para que la web no caiga en `Demo mínima`:
+  - `data/planes/catalog.json`
+  - `data/planes/ingenieria-en-informatica.json`
+  - `data/planes/ingenieria-en-informatica.materias.json`
+  - `data/planes/licenciatura-en-gestion-de-tecnologias-de-la-informacion.json`
+  - `data/planes/licenciatura-en-gestion-de-tecnologias-de-la-informacion.materias.json`
+  - `data/planes/licenciatura-en-produccion-y-desarrollo-de-videojuegos.json`
+  - `data/planes/licenciatura-en-produccion-y-desarrollo-de-videojuegos.materias.json`
+
 ## Estructura principal del proyecto
 
 ```text

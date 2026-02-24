@@ -1,0 +1,418 @@
+[
+  {
+    "id": "01",
+    "nombre": "Introducción a la matemática",
+    "cuatrimestre": 1,
+    "correlativas": []
+  },
+  {
+    "id": "02",
+    "nombre": "Arquitectura de Computadoras",
+    "cuatrimestre": 1,
+    "correlativas": []
+  },
+  {
+    "id": "03",
+    "nombre": "Fundamentos de Programación",
+    "cuatrimestre": 1,
+    "correlativas": []
+  },
+  {
+    "id": "04",
+    "nombre": "Ingeniería y Sociedad",
+    "cuatrimestre": 1,
+    "correlativas": []
+  },
+  {
+    "id": "05",
+    "nombre": "Álgebra y Geometría Analítica",
+    "cuatrimestre": 1,
+    "correlativas": []
+  },
+  {
+    "id": "06",
+    "nombre": "Análisis matemático I",
+    "cuatrimestre": 2,
+    "correlativas": [
+      "01"
+    ]
+  },
+  {
+    "id": "07",
+    "nombre": "Introducción al Desarrollo de Software",
+    "cuatrimestre": 2,
+    "correlativas": []
+  },
+  {
+    "id": "08",
+    "nombre": "Matemática Discreta",
+    "cuatrimestre": 2,
+    "correlativas": [
+      "01"
+    ]
+  },
+  {
+    "id": "09",
+    "nombre": "Sistemas Operativos",
+    "cuatrimestre": 2,
+    "correlativas": [
+      "02"
+    ]
+  },
+  {
+    "id": "10",
+    "nombre": "Inglés Técnico I",
+    "cuatrimestre": 2,
+    "correlativas": []
+  },
+  {
+    "id": "11",
+    "nombre": "Sistemas y Modelos de Procesos",
+    "cuatrimestre": 3,
+    "correlativas": [
+      "04"
+    ]
+  },
+  {
+    "id": "12",
+    "nombre": "Programación Orientada a Objetos",
+    "cuatrimestre": 3,
+    "correlativas": [
+      "03"
+    ]
+  },
+  {
+    "id": "13",
+    "nombre": "Algoritmos y Estructuras de Datos",
+    "cuatrimestre": 3,
+    "correlativas": [
+      "03"
+    ]
+  },
+  {
+    "id": "14",
+    "nombre": "Análisis Matemático II",
+    "cuatrimestre": 3,
+    "correlativas": [
+      "06"
+    ]
+  },
+  {
+    "id": "15",
+    "nombre": "Física I",
+    "cuatrimestre": 3,
+    "correlativas": [
+      "06"
+    ]
+  },
+  {
+    "id": "16",
+    "nombre": "Bases de Datos I",
+    "cuatrimestre": 4,
+    "correlativas": [
+      "07",
+      "08"
+    ]
+  },
+  {
+    "id": "17",
+    "nombre": "Probabilidad y Estadística",
+    "cuatrimestre": 4,
+    "correlativas": [
+      "06"
+    ]
+  },
+  {
+    "id": "18",
+    "nombre": "Teoría de la Información y la Comunicación",
+    "cuatrimestre": 4,
+    "correlativas": [
+      "06",
+      "08"
+    ]
+  },
+  {
+    "id": "19",
+    "nombre": "Sintáxis y Semántica del Lenguaje",
+    "cuatrimestre": 4,
+    "correlativas": [
+      "03",
+      "08"
+    ]
+  },
+  {
+    "id": "20",
+    "nombre": "Inglés Técnico II",
+    "cuatrimestre": 4,
+    "correlativas": [
+      "10"
+    ]
+  },
+  {
+    "id": "21",
+    "nombre": "Paradigmas de Programación",
+    "cuatrimestre": 5,
+    "correlativas": [
+      "12",
+      "13",
+      "19"
+    ]
+  },
+  {
+    "id": "22",
+    "nombre": "Fundamentos de Redes y Comunicaciones",
+    "cuatrimestre": 5,
+    "correlativas": [
+      "09",
+      "18"
+    ]
+  },
+  {
+    "id": "23",
+    "nombre": "Ingeniería de Software I",
+    "cuatrimestre": 5,
+    "correlativas": [
+      "11",
+      "13",
+      "16"
+    ]
+  },
+  {
+    "id": "24",
+    "nombre": "Cálculo Numérico",
+    "cuatrimestre": 5,
+    "correlativas": [
+      "05",
+      "08"
+    ]
+  },
+  {
+    "id": "25",
+    "nombre": "Arquitectura Web I",
+    "cuatrimestre": 5,
+    "correlativas": [
+      "09",
+      "12",
+      "13",
+      "16"
+    ]
+  },
+  {
+    "id": "26",
+    "nombre": "Física II",
+    "cuatrimestre": 6,
+    "correlativas": [
+      "15"
+    ]
+  },
+  {
+    "id": "27",
+    "nombre": "Aprendizaje Automático",
+    "cuatrimestre": 6,
+    "correlativas": [
+      "12",
+      "13",
+      "17",
+      "24"
+    ]
+  },
+  {
+    "id": "28",
+    "nombre": "Arquitectura Web II",
+    "cuatrimestre": 6,
+    "correlativas": [
+      "22",
+      "23",
+      "25"
+    ]
+  },
+  {
+    "id": "29",
+    "nombre": "Economía General",
+    "cuatrimestre": 6,
+    "correlativas": [
+      "14"
+    ]
+  },
+  {
+    "id": "30",
+    "nombre": "Trabajo de Campo",
+    "cuatrimestre": 6,
+    "correlativas": [
+      "22",
+      "23",
+      "25"
+    ]
+  },
+  {
+    "id": "31",
+    "nombre": "Base de Datos II",
+    "cuatrimestre": 7,
+    "correlativas": [
+      "16",
+      "22"
+    ]
+  },
+  {
+    "id": "32",
+    "nombre": "Ingeniería de Software II",
+    "cuatrimestre": 7,
+    "correlativas": [
+      "21",
+      "28"
+    ]
+  },
+  {
+    "id": "33",
+    "nombre": "Redes Neuronales",
+    "cuatrimestre": 7,
+    "correlativas": [
+      "27"
+    ]
+  },
+  {
+    "id": "34",
+    "nombre": "Gestión de Centros de Datos",
+    "cuatrimestre": 7,
+    "correlativas": [
+      "22"
+    ]
+  },
+  {
+    "id": "35",
+    "nombre": "Optativa 1",
+    "cuatrimestre": 7,
+    "correlativas": []
+  },
+  {
+    "id": "36",
+    "nombre": "Sistemas Distribuidos",
+    "cuatrimestre": 8,
+    "correlativas": [
+      "28",
+      "31",
+      "34"
+    ]
+  },
+  {
+    "id": "37",
+    "nombre": "Seguridad Informática",
+    "cuatrimestre": 8,
+    "correlativas": [
+      "28",
+      "31"
+    ]
+  },
+  {
+    "id": "38",
+    "nombre": "Empresas de Base Tecnológica",
+    "cuatrimestre": 8,
+    "correlativas": [
+      "29",
+      "32"
+    ]
+  },
+  {
+    "id": "39",
+    "nombre": "Investigación Operativa y Simulación",
+    "cuatrimestre": 8,
+    "correlativas": [
+      "11",
+      "17",
+      "24",
+      "29"
+    ]
+  },
+  {
+    "id": "40",
+    "nombre": "Optativa 2",
+    "cuatrimestre": 8,
+    "correlativas": []
+  },
+  {
+    "id": "41",
+    "nombre": "Tecnologías para Automatización",
+    "cuatrimestre": 9,
+    "correlativas": [
+      "22",
+      "24",
+      "26"
+    ]
+  },
+  {
+    "id": "42",
+    "nombre": "Ética y Legislación",
+    "cuatrimestre": 9,
+    "correlativas": [
+      "32",
+      "37"
+    ]
+  },
+  {
+    "id": "43",
+    "nombre": "Metodología de la Investigación",
+    "cuatrimestre": 9,
+    "correlativas": [
+      "32"
+    ]
+  },
+  {
+    "id": "44",
+    "nombre": "Operaciones en la Nube",
+    "cuatrimestre": 9,
+    "correlativas": [
+      "32",
+      "36",
+      "37"
+    ]
+  },
+  {
+    "id": "45",
+    "nombre": "Optativa 3",
+    "cuatrimestre": 9,
+    "correlativas": []
+  },
+  {
+    "id": "46",
+    "nombre": "Administración de Sistemas",
+    "cuatrimestre": 10,
+    "correlativas": [
+      "32",
+      "34",
+      "37"
+    ]
+  },
+  {
+    "id": "47",
+    "nombre": "Auditoría y Peritaje",
+    "cuatrimestre": 10,
+    "correlativas": [
+      "42"
+    ]
+  },
+  {
+    "id": "48",
+    "nombre": "Optativa 4",
+    "cuatrimestre": 10,
+    "correlativas": []
+  },
+  {
+    "id": "49",
+    "nombre": "Práctica Profesional Supervisada",
+    "cuatrimestre": 10,
+    "correlativas": [
+      "38",
+      "42"
+    ]
+  },
+  {
+    "id": "50",
+    "nombre": "Proyecto Final de Ingeniería",
+    "cuatrimestre": 10,
+    "correlativas": [
+      "38",
+      "42",
+      "43"
+    ]
+  }
+]

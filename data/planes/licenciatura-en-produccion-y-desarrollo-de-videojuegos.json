@@ -1,0 +1,337 @@
+{
+  "carrera": "Licenciatura en Producción y Desarrollo de Videojuegos",
+  "fuente_pdf": "data\\pdfs\\2022-07-20 Planesdeestudioa4Lic Videojuegos.pdf",
+  "generado_en_utc": "2026-02-23T20:15:52.997049+00:00",
+  "materias": [
+    {
+      "id": "01",
+      "nombre": "Historia de la cultura I",
+      "cuatrimestre": 1,
+      "anio": 1,
+      "correlativas": []
+    },
+    {
+      "id": "02",
+      "nombre": "La Tecnología y sus usos",
+      "cuatrimestre": 1,
+      "anio": 1,
+      "correlativas": []
+    },
+    {
+      "id": "03",
+      "nombre": "Literatura y pensamiento",
+      "cuatrimestre": 1,
+      "anio": 1,
+      "correlativas": []
+    },
+    {
+      "id": "04",
+      "nombre": "Introducción al medio audiovisual",
+      "cuatrimestre": 1,
+      "anio": 1,
+      "correlativas": []
+    },
+    {
+      "id": "05",
+      "nombre": "Introducción a la comunicación",
+      "cuatrimestre": 1,
+      "anio": 1,
+      "correlativas": []
+    },
+    {
+      "id": "06",
+      "nombre": "Historia de la cultura II",
+      "cuatrimestre": 3,
+      "anio": 2,
+      "correlativas": [
+        "01"
+      ]
+    },
+    {
+      "id": "07",
+      "nombre": "Historia del cine",
+      "cuatrimestre": 3,
+      "anio": 2,
+      "correlativas": []
+    },
+    {
+      "id": "08",
+      "nombre": "Pensamiento social argentino",
+      "cuatrimestre": 3,
+      "anio": 2,
+      "correlativas": []
+    },
+    {
+      "id": "09",
+      "nombre": "Fundamentos de la programación I",
+      "cuatrimestre": 3,
+      "anio": 2,
+      "correlativas": [
+        "02"
+      ]
+    },
+    {
+      "id": "10",
+      "nombre": "Diseño lúdico I",
+      "cuatrimestre": 3,
+      "anio": 2,
+      "correlativas": []
+    },
+    {
+      "id": "11",
+      "nombre": "Fundamentos de la programación II",
+      "cuatrimestre": 4,
+      "anio": 2,
+      "correlativas": [
+        "09"
+      ]
+    },
+    {
+      "id": "12",
+      "nombre": "Cultura lúdica: jugar es humano",
+      "cuatrimestre": 4,
+      "anio": 2,
+      "correlativas": []
+    },
+    {
+      "id": "13",
+      "nombre": "Historia de los videojuegos",
+      "cuatrimestre": 4,
+      "anio": 2,
+      "correlativas": [
+        "07"
+      ]
+    },
+    {
+      "id": "14",
+      "nombre": "Gestión de proyectos",
+      "cuatrimestre": 4,
+      "anio": 2,
+      "correlativas": []
+    },
+    {
+      "id": "15",
+      "nombre": "Diseño lúdico II",
+      "cuatrimestre": 5,
+      "anio": 3,
+      "correlativas": [
+        "10"
+      ]
+    },
+    {
+      "id": "16",
+      "nombre": "Taller de prototipado digital",
+      "cuatrimestre": 5,
+      "anio": 3,
+      "correlativas": [
+        "11"
+      ]
+    },
+    {
+      "id": "17",
+      "nombre": "Taller de Diseño y animación en 2D",
+      "cuatrimestre": 5,
+      "anio": 3,
+      "correlativas": []
+    },
+    {
+      "id": "18",
+      "nombre": "Juegos serios I",
+      "cuatrimestre": 5,
+      "anio": 3,
+      "correlativas": [
+        "12"
+      ]
+    },
+    {
+      "id": "19",
+      "nombre": "Industria del videojuego",
+      "cuatrimestre": 6,
+      "anio": 3,
+      "correlativas": []
+    },
+    {
+      "id": "20",
+      "nombre": "Taller de diseño UIX/GUI",
+      "cuatrimestre": 6,
+      "anio": 3,
+      "correlativas": [
+        "17"
+      ]
+    },
+    {
+      "id": "21",
+      "nombre": "Aspectos legales del desarrollo de videojuegos",
+      "cuatrimestre": 6,
+      "anio": 3,
+      "correlativas": [
+        "14"
+      ]
+    },
+    {
+      "id": "22",
+      "nombre": "Producción y prácticas lúdicas I",
+      "cuatrimestre": 6,
+      "anio": 3,
+      "correlativas": [
+        "10"
+      ]
+    },
+    {
+      "id": "23",
+      "nombre": "Economía de la cultura",
+      "cuatrimestre": 7,
+      "anio": 4,
+      "correlativas": []
+    },
+    {
+      "id": "24",
+      "nombre": "Taller introductorio al diseño en 3D",
+      "cuatrimestre": 7,
+      "anio": 4,
+      "correlativas": [
+        "20"
+      ]
+    },
+    {
+      "id": "25",
+      "nombre": "Q.A (“Control de calidad”)",
+      "cuatrimestre": 7,
+      "anio": 4,
+      "correlativas": [
+        "16"
+      ]
+    },
+    {
+      "id": "26",
+      "nombre": "Producción y prácticas lúdicas II",
+      "cuatrimestre": 7,
+      "anio": 4,
+      "correlativas": [
+        "22"
+      ]
+    },
+    {
+      "id": "27",
+      "nombre": "Internacionalización de proyectos",
+      "cuatrimestre": 7,
+      "anio": 4,
+      "correlativas": [
+        "21"
+      ]
+    },
+    {
+      "id": "28",
+      "nombre": "Marketing digital",
+      "cuatrimestre": 8,
+      "anio": 4,
+      "correlativas": []
+    },
+    {
+      "id": "29",
+      "nombre": "Narrativas transmedia",
+      "cuatrimestre": 8,
+      "anio": 4,
+      "correlativas": [
+        "24"
+      ]
+    },
+    {
+      "id": "30",
+      "nombre": "Taller de desarrollo de entornos virtuales",
+      "cuatrimestre": 8,
+      "anio": 4,
+      "correlativas": [
+        "25"
+      ]
+    },
+    {
+      "id": "31",
+      "nombre": "Juegos serios II",
+      "cuatrimestre": 8,
+      "anio": 4,
+      "correlativas": [
+        "18"
+      ]
+    },
+    {
+      "id": "32",
+      "nombre": "Modelos organizacionales",
+      "cuatrimestre": 8,
+      "anio": 4,
+      "correlativas": [
+        "27"
+      ]
+    },
+    {
+      "id": "33",
+      "nombre": "Inglés I",
+      "cuatrimestre": 9,
+      "anio": 5,
+      "correlativas": []
+    },
+    {
+      "id": "34",
+      "nombre": "Ética y liderazgo",
+      "cuatrimestre": 9,
+      "anio": 5,
+      "correlativas": [
+        "32"
+      ]
+    },
+    {
+      "id": "35",
+      "nombre": "Taller proyectual",
+      "cuatrimestre": 9,
+      "anio": 5,
+      "correlativas": [
+        "26",
+        "29",
+        "30"
+      ]
+    },
+    {
+      "id": "36",
+      "nombre": "Metodología de la investigación I",
+      "cuatrimestre": 9,
+      "anio": 5,
+      "correlativas": []
+    },
+    {
+      "id": "37",
+      "nombre": "Inglés II",
+      "cuatrimestre": 10,
+      "anio": 5,
+      "correlativas": [
+        "33"
+      ]
+    },
+    {
+      "id": "38",
+      "nombre": "Planificación de negocios",
+      "cuatrimestre": 10,
+      "anio": 5,
+      "correlativas": [
+        "26"
+      ]
+    },
+    {
+      "id": "39",
+      "nombre": "Metodología de la investigación II",
+      "cuatrimestre": 10,
+      "anio": 5,
+      "correlativas": [
+        "36"
+      ]
+    }
+  ],
+  "hitos": [
+    {
+      "tipo": "titulo_final",
+      "nombre": "Licenciada/o en Producción y Desarrollo de Videojuegos (2752 hs)",
+      "criterio": {
+        "tipo": "plan_completo"
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "generado_en_utc": "2026-02-23T20:15:54.023171+00:00",
+  "carreras": [
+    {
+      "slug": "ingenieria-en-informatica",
+      "carrera": "Ingeniería en Informática",
+      "materias": "ingenieria-en-informatica.materias.json",
+      "metadata": "ingenieria-en-informatica.json"
+    },
+    {
+      "slug": "licenciatura-en-gestion-de-tecnologias-de-la-informacion",
+      "carrera": "Licenciatura en Gestión de Tecnologías de la Información",
+      "materias": "licenciatura-en-gestion-de-tecnologias-de-la-informacion.materias.json",
+      "metadata": "licenciatura-en-gestion-de-tecnologias-de-la-informacion.json"
+    },
+    {
+      "slug": "licenciatura-en-produccion-y-desarrollo-de-videojuegos",
+      "carrera": "Licenciatura en Producción y Desarrollo de Videojuegos",
+      "materias": "licenciatura-en-produccion-y-desarrollo-de-videojuegos.materias.json",
+      "metadata": "licenciatura-en-produccion-y-desarrollo-de-videojuegos.json"
+    }
+  ]
+}

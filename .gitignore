@@ -12,3 +12,10 @@ data/pdfs/*
 # Generated outputs (regenerable)
 data/planes/*.json
 !data/planes/.gitkeep
+!data/planes/catalog.json
+!data/planes/ingenieria-en-informatica.json
+!data/planes/ingenieria-en-informatica.materias.json
+!data/planes/licenciatura-en-gestion-de-tecnologias-de-la-informacion.json
+!data/planes/licenciatura-en-gestion-de-tecnologias-de-la-informacion.materias.json
+!data/planes/licenciatura-en-produccion-y-desarrollo-de-videojuegos.json
+!data/planes/licenciatura-en-produccion-y-desarrollo-de-videojuegos.materias.json
