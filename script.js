@@ -285,7 +285,7 @@ function setViewMode(mode, options = {}) {
   if (onboardingTourState.active) renderOnboardingStep();
 
   if (showMessage) {
-    showToast(currentViewMode === "list" ? "Vista lista móvil activada." : "Vista diagrama activada.");
+    showToast(currentViewMode === "list" ? "Vista lista activada." : "Vista diagrama activada.");
   }
 }
 
@@ -310,8 +310,8 @@ function buildOnboardingSteps() {
       getTarget: () => document.querySelector(".subject-card")
     },
     {
-      title: "Ciclo rápido por cuatrimestre",
-      body: "Tocá el título del cuatrimestre para avanzar todas las materias de ese bloque.",
+      title: "Cambio por cuatrimestre",
+      body: "Tocá el título del cuatrimestre para cambiar todas las materias de ese bloque.",
       getTarget: () => document.querySelector(".semester-label, .semester-accordion-summary")
     },
     {
@@ -321,7 +321,7 @@ function buildOnboardingSteps() {
     },
     {
       title: "Vista móvil alternativa",
-      body: "Podés alternar entre Diagrama y Lista móvil para navegar mejor en pantallas pequeñas.",
+      body: "Podés alternar entre Diagrama y Lista para navegar más cómodo.",
       getTarget: () => document.getElementById("view-mode-toggle")
     }
   ];
@@ -336,40 +336,23 @@ function clearOnboardingFocus() {
   }
 }
 
-function placeOnboardingGuide(target) {
+function placeOnboardingGuide() {
   const guide = document.getElementById("onboarding-guide");
   if (!guide) return;
 
   guide.style.top = "";
   guide.style.left = "";
+  guide.style.right = "";
   guide.style.bottom = "";
   guide.style.transform = "";
-
-  if (!target) {
-    guide.style.left = "50%";
-    guide.style.bottom = "1rem";
-    guide.style.transform = "translateX(-50%)";
+  if (window.innerWidth <= 768) {
+    guide.style.left = ".75rem";
+    guide.style.right = ".75rem";
+    guide.style.bottom = "4.6rem";
     return;
   }
-
-  const rect = target.getBoundingClientRect();
-  const guideRect = guide.getBoundingClientRect();
-  const margin = 12;
-
-  let top = rect.bottom + margin;
-  if (top + guideRect.height > window.innerHeight - margin) {
-    top = rect.top - guideRect.height - margin;
-  }
-  top = Math.max(margin, top);
-
-  let left = rect.left;
-  if (left + guideRect.width > window.innerWidth - margin) {
-    left = window.innerWidth - guideRect.width - margin;
-  }
-  left = Math.max(margin, left);
-
-  guide.style.top = `${Math.round(top)}px`;
-  guide.style.left = `${Math.round(left)}px`;
+  guide.style.right = "1rem";
+  guide.style.bottom = "1rem";
 }
 
 function paintOnboardingFocus(target) {
@@ -415,7 +398,7 @@ function renderOnboardingStep() {
 
   const target = typeof step.getTarget === "function" ? step.getTarget() : null;
   paintOnboardingFocus(target);
-  placeOnboardingGuide(target);
+  placeOnboardingGuide();
 }
 
 function startOnboardingTour() {
@@ -921,9 +904,9 @@ function renderSemesters() {
       label.setAttribute("tabindex", "0");
       label.setAttribute(
         "aria-label",
-        `${cuatrimestre}° cuatrimestre. Ciclo rápido de estados para todas sus materias.`
+        `${cuatrimestre}° cuatrimestre. Cambiar todas las materias de este bloque.`
       );
-      label.title = "Ciclo rápido: Pendiente -> Regular -> Aprobada -> Pendiente";
+      label.title = "Cambiar bloque: Pendiente -> Regular -> Aprobada -> Pendiente";
       label.addEventListener("click", () => applySemesterCycleQuick(cuatrimestre));
       label.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -973,10 +956,10 @@ function renderSemestersAccordion() {
       const quickCycleButton = document.createElement("button");
       quickCycleButton.type = "button";
       quickCycleButton.className = "semester-accordion-cycle";
-      quickCycleButton.textContent = "Ciclo rápido";
+      quickCycleButton.textContent = "Cambiar todo";
       quickCycleButton.setAttribute(
         "aria-label",
-        `Aplicar ciclo rápido al ${cuatrimestre}° cuatrimestre`
+        `Cambiar todas las materias del ${cuatrimestre}° cuatrimestre`
       );
       quickCycleButton.addEventListener("click", () => applySemesterCycleQuick(cuatrimestre));
       actions.appendChild(quickCycleButton);
@@ -1000,6 +983,7 @@ function renderPlanView() {
   clearPathHighlights();
 
   if (currentViewMode === "list") {
+    diagramContainer.hidden = true;
     diagramContainer.innerHTML = "";
     accordionContainer.hidden = false;
     renderSemestersAccordion();
@@ -1009,6 +993,7 @@ function renderPlanView() {
     return;
   }
 
+  diagramContainer.hidden = false;
   accordionContainer.hidden = true;
   accordionContainer.innerHTML = "";
   svg.style.display = "";

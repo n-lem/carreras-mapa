@@ -660,6 +660,10 @@ main { padding: 1.15rem 1rem 2.8rem; }
   min-height: 55vh;
 }
 
+#semesters[hidden] {
+  display: none !important;
+}
+
 #semesters-accordion {
   display: flex;
   flex-direction: column;
@@ -984,10 +988,11 @@ body[data-theme="dark"] .semester-label {
 /* ── Onboarding / footer ─────────────────────────────────── */
 .onboarding-guide {
   position: fixed;
-  left: 50%;
+  right: 1rem;
+  left: auto;
   bottom: 1rem;
-  transform: translateX(-50%);
-  width: min(520px, calc(100vw - 2rem));
+  transform: none;
+  width: min(380px, calc(100vw - 1.5rem));
   background: var(--milestone-bg);
   color: var(--milestone-text);
   border: 1px solid var(--milestone-border);
@@ -999,8 +1004,8 @@ body[data-theme="dark"] .semester-label {
 }
 
 @keyframes onboarding-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .onboarding-step-head {
@@ -1066,7 +1071,7 @@ body[data-theme="dark"] .semester-label {
   position: fixed;
   border-radius: 10px;
   border: 2px solid #3b82f6;
-  box-shadow: 0 0 0 9999px rgba(15, 23, 42, .28);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, .25);
   pointer-events: none;
   z-index: 9795;
   transition: top .2s ease, left .2s ease, width .2s ease, height .2s ease;
@@ -1225,6 +1230,9 @@ body[data-theme="dark"] .semester-label {
   }
 
   .onboarding-guide {
+    right: .75rem;
+    left: .75rem;
+    width: auto;
     bottom: 4.6rem;
   }
 }
