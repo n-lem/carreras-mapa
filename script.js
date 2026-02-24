@@ -448,33 +448,55 @@ function getMissingCorrelativas(id, targetState) {
 }
 
 function getMissingCorrelativaIds(id, targetState) {
-  const materia = MATERIAS_BY_ID[id];
-  if (!materia) return [];
-  return materia.correlativas.filter((correlativaId) => {
-    const currentState = getState(correlativaId);
-    if (targetState === 1) return currentState < 1;
-    if (targetState === 2) return currentState !== 2;
-    return false;
-  });
+  const requiredState = targetState === 2 ? 2 : 1;
+  const missingIds = new Set();
+  const visited = new Set();
+
+  const visit = (materiaId) => {
+    if (visited.has(materiaId)) return;
+    visited.add(materiaId);
+
+    const materia = MATERIAS_BY_ID[materiaId];
+    if (!materia) return;
+
+    materia.correlativas.forEach((correlativaId) => {
+      const correlativaState = getState(correlativaId);
+      if (correlativaState < requiredState) {
+        missingIds.add(correlativaId);
+        visit(correlativaId);
+      }
+    });
+  };
+
+  visit(id);
+  return [...missingIds];
 }
 
 function buildDefs(svg) {
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+  const markerStates = [
+    { key: "default", opacity: "0.22" },
+    { key: "regular", opacity: "0.44" },
+    { key: "approved", opacity: "0.82" }
+  ];
 
   EDGE_COLORS.forEach((color, index) => {
-    const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
-    marker.setAttribute("id", `arrowhead-${index}`);
-    marker.setAttribute("markerWidth", "8");
-    marker.setAttribute("markerHeight", "8");
-    marker.setAttribute("refX", "6");
-    marker.setAttribute("refY", "3");
-    marker.setAttribute("orient", "auto");
+    markerStates.forEach((state) => {
+      const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+      marker.setAttribute("id", `arrowhead-${state.key}-${index}`);
+      marker.setAttribute("markerWidth", "8");
+      marker.setAttribute("markerHeight", "8");
+      marker.setAttribute("refX", "6");
+      marker.setAttribute("refY", "3");
+      marker.setAttribute("orient", "auto");
 
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", "M0,0 L0,6 L8,3 z");
-    path.setAttribute("fill", color);
-    marker.appendChild(path);
-    defs.appendChild(marker);
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "M0,0 L0,6 L8,3 z");
+      path.setAttribute("fill", color);
+      path.setAttribute("fill-opacity", state.opacity);
+      marker.appendChild(path);
+      defs.appendChild(marker);
+    });
   });
 
   svg.appendChild(defs);
@@ -495,13 +517,26 @@ function getCardRectRelative(id) {
   };
 }
 
-function arrowClass(fromId, toId) {
+function edgeVisualState(fromId, toId) {
   const fromState = getState(fromId);
   const toState = getState(toId);
 
-  if (fromState === 2 && toState === 2) return "arrow-line state-approved";
-  if (fromState >= 1) return "arrow-line state-regular";
+  if (fromState === 2 && toState === 2) return "approved";
+  if (fromState >= 1 && toState >= 1) return "regular";
+  return "default";
+}
+
+function arrowClass(fromId, toId) {
+  const visualState = edgeVisualState(fromId, toId);
+  if (visualState === "approved") return "arrow-line state-approved";
+  if (visualState === "regular") return "arrow-line state-regular";
   return "arrow-line";
+}
+
+function markerIdForEdge(toId, fromId) {
+  const colorIndex = edgeColorIndexForMateria(toId);
+  const visualState = edgeVisualState(fromId, toId);
+  return `arrowhead-${visualState}-${colorIndex}`;
 }
 
 function edgeColorIndexForMateria(materiaId) {
@@ -623,13 +658,14 @@ function drawArrows() {
       const y2 = to.top - 2;
       const midY = (y1 + y2) / 2;
       const colorIndex = edgeColorIndexForMateria(materia.id);
+      const markerId = markerIdForEdge(materia.id, correlativaId);
 
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("d", `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`);
       path.setAttribute("class", arrowClass(correlativaId, materia.id));
       path.setAttribute("data-edge-key", `${correlativaId}->${materia.id}`);
       path.style.setProperty("--edge-color", EDGE_COLORS[colorIndex]);
-      path.setAttribute("marker-end", `url(#arrowhead-${colorIndex})`);
+      path.setAttribute("marker-end", `url(#${markerId})`);
       svg.appendChild(path);
     });
   });

@@ -105,7 +105,7 @@ body {
 }
 
 /* ── Header ───────────────────────────────────────────────── */
-header {
+body > header {
   background: linear-gradient(135deg, var(--header-bg) 0%, #16253f 100%);
   color: var(--header-text);
   border-bottom: 1px solid rgba(148, 163, 184, .2);
@@ -131,7 +131,7 @@ header {
   min-width: 0;
 }
 
-header h1 {
+body > header h1 {
   font-size: clamp(1.45rem, 1.15rem + .6vw, 1.95rem);
   line-height: 1.05;
   font-weight: 800;
@@ -562,7 +562,7 @@ body[data-theme="dark"] .career-fab-panel select {
   background: var(--milestone-ok-bg);
   color: var(--milestone-ok-text);
   box-shadow: var(--shadow);
-  padding: .55rem .7rem;
+  padding: .62rem .75rem;
   animation: achievement-in .3s ease;
 }
 
@@ -571,7 +571,7 @@ body[data-theme="dark"] .career-fab-panel select {
   align-items: center;
   justify-content: space-between;
   gap: .5rem;
-  margin-bottom: .12rem;
+  margin-bottom: .18rem;
 }
 
 .achievement-title {
@@ -787,20 +787,20 @@ body[data-theme="dark"] .semester-label {
 .arrow-line {
   fill: none;
   stroke: var(--edge-color, #94a3b8);
-  stroke-width: 1.85;
-  stroke-opacity: .22;
-  stroke-dasharray: 5 4;
+  stroke-width: 1.65;
+  stroke-opacity: .14;
+  stroke-dasharray: 6 5;
   transition: stroke-width .3s, stroke-opacity .3s;
 }
 
 .arrow-line.state-regular {
-  stroke-width: 2.1;
-  stroke-opacity: .52;
-  stroke-dasharray: none;
+  stroke-width: 1.9;
+  stroke-opacity: .36;
+  stroke-dasharray: 4 4;
 }
 
 .arrow-line.state-approved {
-  stroke-width: 2.45;
+  stroke-width: 2.35;
   stroke-opacity: .82;
   stroke-dasharray: none;
 }
@@ -810,7 +810,7 @@ body[data-theme="dark"] .semester-label {
 }
 
 .arrow-line.path-active {
-  stroke-width: 3.05 !important;
+  stroke-width: 2.7 !important;
   stroke-opacity: .98 !important;
   stroke-dasharray: none !important;
 }
@@ -954,7 +954,7 @@ body[data-theme="dark"] .semester-label {
 
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 1080px) {
-  header {
+  body > header {
     grid-template-columns: 1fr;
     align-items: start;
     gap: .75rem;
@@ -983,7 +983,7 @@ body[data-theme="dark"] .semester-label {
 }
 
 @media (max-width: 768px) {
-  header {
+  body > header {
     padding: 1rem;
     gap: .7rem;
   }
@@ -1158,7 +1158,7 @@ body[data-theme="dark"] .semester-label {
   }
 
   /* 1. Ocultar todos los elementos interactivos y flotantes */
-  header,
+  body > header,
   .milestone-floating,
   .milestone-show-btn,
   .career-fab,
