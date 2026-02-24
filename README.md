@@ -28,6 +28,35 @@ El `catalog.json` del repositorio está preparado con 3 carreras de ejemplo:
 - Ingeniería en Informática
 - Licenciatura en Producción y Desarrollo de Videojuegos
 
+## Estructura principal del proyecto
+
+```text
+index.html
+assets/
+  css/
+    style.css
+  js/
+    core.js
+    script.js
+  vendor/
+    html2canvas.min.js
+data/
+  planes/
+tools/
+tests/
+```
+
+- `index.html`: punto de entrada; layout base, CSP y carga de assets.
+- `assets/css/style.css`: estilos globales, layout responsive, estados visuales, print.
+- `assets/js/core.js`: reglas de dominio puras (validación de esquema, correlatividades, normalización).
+- `assets/js/script.js`: UI, render, eventos, almacenamiento local, import/export, onboarding y vistas.
+- `assets/vendor/html2canvas.min.js`: dependencia local para exportar PNG (sin CDN).
+- `data/planes/*.materias.json`: materias consumidas por la UI.
+- `data/planes/*.json`: metadata por carrera (hitos, programas, enlaces).
+- `data/planes/catalog.json`: carreras disponibles en el selector.
+- `tools/pdf_to_plan_json.py`: generación de JSON desde PDFs.
+- `tests/`: pruebas de reglas y E2E.
+
 ## Flujo para agregar carreras desde PDF
 
 1. Copiar PDFs a `data/pdfs/`.
@@ -80,9 +109,9 @@ npm run test:e2e
 
 ## Seguridad
 
-- `core.js` valida schema de materias/metadata antes de usar datos.
-- `script.js` valida catálogo y rechaza estructuras inválidas.
-- Dependencia de PNG (`html2canvas`) vendorizada en `vendor/` para evitar carga remota de scripts.
+- `assets/js/core.js` valida schema de materias/metadata antes de usar datos.
+- `assets/js/script.js` valida catálogo y rechaza estructuras inválidas.
+- Dependencia de PNG (`html2canvas`) vendorizada en `assets/vendor/` para evitar carga remota de scripts.
 - Importación de progreso endurecida:
   - acepta solo JSON (por extensión/tipo)
   - límite de tamaño (`1 MB`)
