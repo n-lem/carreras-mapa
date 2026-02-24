@@ -852,6 +852,13 @@ body[data-theme="dark"] .semester-label {
   text-align: center;
 }
 
+.aux-note {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--semester-label);
+  text-align: center;
+}
+
 .programs-list {
   list-style: none;
   display: flex;

@@ -49,6 +49,7 @@ let activeRequirementHighlight = null;
 let currentViewMode = "diagram";
 let onboardingTourState = { active: false, stepIndex: 0, steps: [] };
 let onboardingFocusedElement = null;
+let accordionOpenBySemester = {};
 
 /** @type {Record<string, 0|1|2>} */
 let progress = {};
@@ -385,30 +386,63 @@ function placeOnboardingGuide(target) {
   const guideRect = guide.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const overlapArea = (a, b) => {
+    const x = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+    const y = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+    return x * y;
+  };
 
-  let top = rect.bottom + margin;
-  if (top + guideRect.height > viewportHeight - margin) {
-    const altTop = rect.top - guideRect.height - margin;
-    top = altTop >= margin ? altTop : Math.max(margin, viewportHeight - guideRect.height - margin);
-  }
-
-  let left = rect.left + (rect.width / 2) - (guideRect.width / 2);
-  left = Math.max(margin, Math.min(left, viewportWidth - guideRect.width - margin));
-
-  const overlapsHorizontally = left < rect.right && left + guideRect.width > rect.left;
-  const overlapsVertically = top < rect.bottom && top + guideRect.height > rect.top;
-  if (overlapsHorizontally && overlapsVertically) {
-    const rightLeft = rect.right + margin;
-    const leftLeft = rect.left - guideRect.width - margin;
-    if (rightLeft + guideRect.width <= viewportWidth - margin) {
-      left = rightLeft;
-    } else if (leftLeft >= margin) {
-      left = leftLeft;
+  const candidates = [
+    {
+      top: rect.bottom + margin,
+      left: rect.left + (rect.width - guideRect.width) / 2
+    },
+    {
+      top: rect.top - guideRect.height - margin,
+      left: rect.left + (rect.width - guideRect.width) / 2
+    },
+    {
+      top: rect.top + (rect.height - guideRect.height) / 2,
+      left: rect.right + margin
+    },
+    {
+      top: rect.top + (rect.height - guideRect.height) / 2,
+      left: rect.left - guideRect.width - margin
+    },
+    {
+      top: viewportHeight - guideRect.height - margin,
+      left: (viewportWidth - guideRect.width) / 2
+    },
+    {
+      top: margin,
+      left: (viewportWidth - guideRect.width) / 2
     }
-  }
+  ];
 
-  guide.style.top = `${Math.round(top)}px`;
-  guide.style.left = `${Math.round(left)}px`;
+  let best = null;
+  candidates.forEach((candidate, index) => {
+    const left = clamp(candidate.left, margin, viewportWidth - guideRect.width - margin);
+    const top = clamp(candidate.top, margin, viewportHeight - guideRect.height - margin);
+    const box = {
+      left,
+      top,
+      right: left + guideRect.width,
+      bottom: top + guideRect.height
+    };
+    const overlap = overlapArea(box, rect);
+    const centerDistance = Math.hypot(
+      (box.left + box.right) / 2 - (rect.left + rect.right) / 2,
+      (box.top + box.bottom) / 2 - (rect.top + rect.bottom) / 2
+    );
+    const score = overlap * 100000 + (overlap > 0 ? 0 : -centerDistance) + index * 0.001;
+    if (!best || score < best.score) {
+      best = { score, top, left };
+    }
+  });
+
+  guide.style.top = `${Math.round(best?.top ?? margin)}px`;
+  guide.style.left = `${Math.round(best?.left ?? margin)}px`;
 }
 
 function stripCloneIds(node) {
@@ -473,6 +507,18 @@ function renderOnboardingStep() {
   setOnboardingBackdropVisible(true);
 
   const target = typeof step.getTarget === "function" ? step.getTarget() : null;
+  if (target) {
+    const targetRect = target.getBoundingClientRect();
+    const edgeMargin = 72;
+    const outOfView =
+      targetRect.top < edgeMargin ||
+      targetRect.bottom > window.innerHeight - edgeMargin ||
+      targetRect.left < edgeMargin ||
+      targetRect.right > window.innerWidth - edgeMargin;
+    if (outOfView) {
+      target.scrollIntoView({ block: "center", inline: "center", behavior: "auto" });
+    }
+  }
   paintOnboardingFocus(target);
   placeOnboardingGuide(target);
 }
@@ -1039,7 +1085,14 @@ function renderSemestersAccordion() {
     .forEach((cuatrimestre) => {
       const details = document.createElement("details");
       details.className = "semester-accordion";
-      details.open = cuatrimestre <= 2;
+      details.dataset.cuatrimestre = String(cuatrimestre);
+      const stateKey = String(cuatrimestre);
+      details.open = Object.prototype.hasOwnProperty.call(accordionOpenBySemester, stateKey)
+        ? Boolean(accordionOpenBySemester[stateKey])
+        : cuatrimestre <= 2;
+      details.addEventListener("toggle", () => {
+        accordionOpenBySemester[stateKey] = details.open;
+      });
 
       const summary = document.createElement("summary");
       summary.className = "semester-accordion-summary";
@@ -1057,7 +1110,11 @@ function renderSemestersAccordion() {
         "aria-label",
         `Cambiar todas las materias del ${cuatrimestre}° cuatrimestre`
       );
-      quickCycleButton.addEventListener("click", () => applySemesterCycleQuick(cuatrimestre));
+      quickCycleButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        applySemesterCycleQuick(cuatrimestre);
+      });
       actions.appendChild(quickCycleButton);
       details.appendChild(actions);
 
@@ -1108,12 +1165,22 @@ function resolveProgramLinkEntry(materiaId) {
   return null;
 }
 
+function shouldHideUnavailablePrograms() {
+  if (Object.prototype.hasOwnProperty.call(ACTIVE_PLAN_META || {}, "programasOcultarNoDisponibles")) {
+    return Boolean(ACTIVE_PLAN_META.programasOcultarNoDisponibles);
+  }
+  return true;
+}
+
 function renderProgramsView() {
   const container = document.getElementById("programs-view");
   if (!container) return;
 
   container.innerHTML = "";
   container.className = "aux-view";
+  const hideUnavailable = shouldHideUnavailablePrograms();
+  let hiddenCount = 0;
+  let renderedCount = 0;
 
   const grouped = MATERIAS.reduce((acc, materia) => {
     if (!acc[materia.cuatrimestre]) acc[materia.cuatrimestre] = [];
@@ -1157,22 +1224,42 @@ function renderProgramsView() {
         link.className = "program-item-link";
         link.href = linkEntry.url;
         link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.textContent = linkEntry.label || "Abrir programa";
+        link.rel = "noopener noreferrer nofollow";
+        link.referrerPolicy = "no-referrer";
+        link.textContent = "Abrir programa";
         item.appendChild(link);
+        renderedCount += 1;
       } else {
+        if (hideUnavailable) {
+          hiddenCount += 1;
+          return;
+        }
         const missing = document.createElement("span");
         missing.className = "program-item-missing";
-        missing.textContent = "Sin enlace";
+        missing.textContent = "Próximamente";
         item.appendChild(missing);
+        renderedCount += 1;
       }
 
       list.appendChild(item);
     });
 
+    if (list.children.length === 0) return;
     block.appendChild(list);
     container.appendChild(block);
   });
+
+  if (renderedCount === 0) {
+    const empty = document.createElement("p");
+    empty.className = "aux-empty";
+    empty.textContent = "No hay programas publicados para esta carrera.";
+    container.appendChild(empty);
+  } else if (hiddenCount > 0) {
+    const note = document.createElement("p");
+    note.className = "aux-note";
+    note.textContent = `${hiddenCount} programas aún no publicados.`;
+    container.appendChild(note);
+  }
 }
 
 function normalizeInterestLinks() {
@@ -1264,6 +1351,14 @@ function renderPlanView() {
   if (!diagramContainer || !accordionContainer || !programsContainer || !linksContainer || !svg) return;
 
   clearPathHighlights();
+  if (currentViewMode === "list") {
+    const currentOpenState = {};
+    accordionContainer.querySelectorAll(".semester-accordion[data-cuatrimestre]").forEach((details) => {
+      const key = details.getAttribute("data-cuatrimestre");
+      if (key) currentOpenState[key] = details.open;
+    });
+    accordionOpenBySemester = { ...accordionOpenBySemester, ...currentOpenState };
+  }
   programsContainer.hidden = true;
   programsContainer.innerHTML = "";
   linksContainer.hidden = true;
@@ -2151,6 +2246,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     setMaterias(materias);
     progress = loadProgress();
     milestoneStateByKey = {};
+    accordionOpenBySemester = {};
     clearAchievementNotifications();
     clearRequirementHighlights();
     if (normalizeProgressState()) saveProgress();
@@ -2195,6 +2291,7 @@ async function activatePlan(plan, allowDemoFallback = false) {
     setMaterias(FALLBACK_MATERIAS);
     progress = loadProgress();
     milestoneStateByKey = {};
+    accordionOpenBySemester = {};
     clearAchievementNotifications();
     clearRequirementHighlights();
     if (normalizeProgressState()) saveProgress();
