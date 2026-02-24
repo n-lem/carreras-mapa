@@ -12,6 +12,7 @@ Mapa de correlatividades para carreras UNPAZ.
   - nombre de carrera
   - contadores `Pendiente/Regular/Aprobada`
   - acceso rápido a `Herramientas` y `Reiniciar progreso`
+- Exportación del mapa a PNG desde `Herramientas -> Guardar como PNG`.
 - Modo impresión en claro.
 - Catálogo dinámico de carreras (`data/planes/catalog.json`).
 
@@ -69,6 +70,7 @@ npm run test:e2e
 
 - `core.js` valida schema de materias/metadata antes de usar datos.
 - `script.js` valida catálogo y rechaza estructuras inválidas.
+- Dependencia de PNG (`html2canvas`) vendorizada en `vendor/` para evitar carga remota de scripts.
 - Importación de progreso endurecida:
   - acepta solo JSON (por extensión/tipo)
   - límite de tamaño (`1 MB`)
