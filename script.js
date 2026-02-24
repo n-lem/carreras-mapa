@@ -386,12 +386,32 @@ function placeOnboardingGuide(target) {
   const guideRect = guide.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const clamp = (value, min, max) => {
+    if (max < min) return min;
+    return Math.min(max, Math.max(min, value));
+  };
   const overlapArea = (a, b) => {
     const x = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
     const y = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
     return x * y;
   };
+
+  if (viewportWidth <= 768) {
+    const centeredLeft = clamp(
+      (viewportWidth - guideRect.width) / 2,
+      margin,
+      viewportWidth - guideRect.width - margin
+    );
+    let top = viewportHeight - guideRect.height - margin;
+    const overlapsBottom = rect.bottom >= top - margin;
+    if (overlapsBottom) {
+      top = margin;
+    }
+
+    guide.style.left = `${Math.round(centeredLeft)}px`;
+    guide.style.top = `${Math.round(clamp(top, margin, viewportHeight - guideRect.height - margin))}px`;
+    return;
+  }
 
   const candidates = [
     {
@@ -435,7 +455,7 @@ function placeOnboardingGuide(target) {
       (box.left + box.right) / 2 - (rect.left + rect.right) / 2,
       (box.top + box.bottom) / 2 - (rect.top + rect.bottom) / 2
     );
-    const score = overlap * 100000 + (overlap > 0 ? 0 : -centerDistance) + index * 0.001;
+    const score = overlap * 100000 + centerDistance + index * 0.001;
     if (!best || score < best.score) {
       best = { score, top, left };
     }
