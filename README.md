@@ -1,4 +1,4 @@
-# carreras-
+# carreras-mapa
 Mapa de correlatividades para carreras LGTI.
 
 ## Características principales
